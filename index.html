@@ -5715,6 +5715,8 @@ function useJoker50() {
             }
             
             document.getElementById('hintContainer').classList.remove('hidden'); resetIdleTimer(); 
+        }
+        
         function checkAnswer(selectedBtn, answerText) {
             if(isProcessing) return;
             clearTimeout(idleTimer);
