@@ -141,7 +141,7 @@
 
     const db = getDatabase(initializeApp(firebaseConfig));
 
-    onValue(ref(db, 'oyun_verileri/'), (snapshot) => {
+    onValue(ref(db, 'oyun_verileri'), (snapshot) => {
         const data = snapshot.val();
         if (data) {
             const entries = Object.values(data);
