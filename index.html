@@ -5752,8 +5752,6 @@ function useJoker50() {
                     comboCount = 0; 
                     activeProfile.stats.wrongAnswers++;
                     recordStat('wrong');
-                    
-                    // Firebase veri gönderimi (Yanlış)
                     veritabaninaGonder("yanlis", songData ? songData.title : "Genel");
                     
                     if(currentMode === 'timeAttack') {
@@ -5766,13 +5764,9 @@ function useJoker50() {
                     playSound('correct');
                     let earnedPoints = 10;
                     comboCount++; 
-                    
                     if(comboCount > activeProfile.stats.longestStreak) activeProfile.stats.longestStreak = comboCount;
-
-                    // Firebase veri gönderimi (Doğru)
                     veritabaninaGonder("dogru", songData ? songData.title : "Genel");
 
-                    // YENİ EKLENEN KOMBO JOKER ÖDÜLÜ
                     if(comboCount > 0 && comboCount % 5 === 0) {
                         const keys = ['fifty', 'chance', 'pass', 'audience', 'hint'];
                         const names = { fifty: '%50', chance: '2. Şans', pass: 'Pas', audience: 'Seyirci', hint: 'İpucu' };
@@ -5783,23 +5777,9 @@ function useJoker50() {
                         showToast("Kombo Hediyesi!", `+1 ${names[rJoker]} hakkı kazandın!`, icons[rJoker]);
                     }
                     
-                    if(comboCount === 5) {
-                        panel.classList.add('shake-screen-light');
-                        showComboText(`KOMBO x5!`);
-                        playSound('win');
-                    } else if(comboCount === 10) {
-                        panel.classList.add('shake-screen-heavy', 'fire-screen');
-                        earnedPoints += 50;
-                        showComboText(`MEGA KOMBO!`);
-                        showToast("Alev Alıyorsun!", "+50 Bonus Puan!", "🔥");
-                        playSound('win');
-                    } else if(comboCount >= 15 && comboCount % 5 === 0) {
-                        panel.classList.add('shake-screen-heavy', 'fire-screen');
-                        earnedPoints += 100;
-                        showComboText(`DURDURULAMAZ!`);
-                        showToast("Tanrı Modu!", "+100 Bonus Puan!", "🔥");
-                        playSound('win');
-                    }
+                    if(comboCount === 5) { panel.classList.add('shake-screen-light'); showComboText(`KOMBO x5!`); playSound('win'); } 
+                    else if(comboCount === 10) { panel.classList.add('shake-screen-heavy', 'fire-screen'); earnedPoints += 50; showComboText(`MEGA KOMBO!`); showToast("Alev Alıyorsun!", "+50 Bonus Puan!", "🔥"); playSound('win'); } 
+                    else if(comboCount >= 15 && comboCount % 5 === 0) { panel.classList.add('shake-screen-heavy', 'fire-screen'); earnedPoints += 100; showComboText(`DURDURULAMAZ!`); showToast("Tanrı Modu!", "+100 Bonus Puan!", "🔥"); playSound('win'); }
 
                     if(comboCount >= 3 && comboCount !== 5 && comboCount !== 10 && (comboCount % 5 !== 0)) {
                         let bonus = (comboCount - 2) * 5;
@@ -5812,9 +5792,7 @@ function useJoker50() {
                     activeProfile.stats.correctAnswers++;
                     recordStat('correct');
                     document.getElementById('gameScore').innerText = currentScore;
-                    
                     if(currentScore > (activeProfile.stats.highestScore || 0)) activeProfile.stats.highestScore = currentScore;
-
                     throwEmojis(songEmoji);
                     if(currentMode === 'timeAttack') timeLeft += 3;
                 }
@@ -5827,19 +5805,15 @@ function useJoker50() {
                     document.getElementById('lyricText').innerHTML += `<br><span class="reveal-artist block text-xl text-[var(--accent)] mt-4 font-black tracking-wide drop-shadow-md neon-text text-bg-guard py-1 px-4 rounded-xl w-max mx-auto">- ${artistName}</span>`;
                 }
 
-            } catch (err) {
-                console.error("Cevap verisi islenirken hata:", err);
-            } finally {
+            } catch (err) { console.error("Cevap verisi islenirken hata:", err); } 
+            finally {
                 setTimeout(() => {
                     isProcessing = false; 
                     try {
                         if(currentMode === 'timeAttack' && timeLeft <= 0) return;
                         if((currentMode !== 'timeAttack') && lives <= 0) { endGame(); return; }
                         loadQuestion();
-                    } catch(e) {
-                        console.error("Geçiş Hatası", e);
-                        loadQuestion();
-                    }
+                    } catch(e) { loadQuestion(); }
                 }, 1800);
             }
         }
