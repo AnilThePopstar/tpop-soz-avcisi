@@ -867,7 +867,7 @@
 
 <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCdNq7HlRH9iOa2z_RJf8bMgQjWKD797Cw",
@@ -881,8 +881,38 @@
         };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
+        console.log("✅ Firebase bağlantısı kuruldu (index.html).");
+
         window.veritabaninaGonder = (durum, sarki) => {
-            push(ref(db, 'oyun_verileri/'), { durum, sarki, zaman: Date.now() });
+            push(ref(db, 'oyun_verileri/'), { durum, sarki, zaman: Date.now() })
+                .then(() => {
+                    console.log("✅ Veritabanına yazıldı:", { durum, sarki });
+                })
+                .catch((err) => {
+                    // Artık hata sessizce yutulmuyor, konsolda ve ekranda görünüyor.
+                    console.error("❌ Firebase YAZMA HATASI:", err.code, err.message);
+                });
+        };
+
+        // Firebase key olarak kullanılamayan karakterleri (. # $ [ ] /) temizler.
+        function sanitizeKey(str) {
+            return String(str).replace(/[.#$\[\]\/]/g, '_').trim();
+        }
+
+        // Aynı anda çok fazla yazma isteği göndermemek için 800ms'lik bir bekleme (debounce) uygulanır.
+        let _profilSyncTimer = null;
+        window.profiliFirebaseaKaydet = (profile) => {
+            if (!profile || !profile.username) return;
+            clearTimeout(_profilSyncTimer);
+            _profilSyncTimer = setTimeout(() => {
+                const key = sanitizeKey(profile.username);
+                set(ref(db, 'users/' + key), {
+                    ...profile,
+                    lastSeen: Date.now()
+                })
+                    .then(() => console.log("✅ Profil Firebase'e senkronize edildi:", key))
+                    .catch((err) => console.error("❌ Firebase PROFİL YAZMA HATASI:", err.code, err.message));
+            }, 800);
         };
     </script>
     
@@ -4962,6 +4992,10 @@ function spawnThemeParticles() {
         function saveAppData() {
             if(!activeProfile) return;
             try { localStorage.setItem('tpop_profile_' + activeProfile.username, JSON.stringify(activeProfile)); } catch(e) {}
+            // Profili Firebase'e de senkronize et (admin paneli bunu okuyor).
+            if (typeof window.profiliFirebaseaKaydet === 'function') {
+                window.profiliFirebaseaKaydet(activeProfile);
+            }
         }
 
         function recordStat(type) {
