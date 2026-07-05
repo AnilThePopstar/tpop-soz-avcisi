@@ -865,6 +865,27 @@
         </div>
     </div>
 
+<script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdNq7HlRH9iOa2z_RJf8bMgQjWKD797Cw",
+            authDomain: "kralice-production.firebaseapp.com",
+            databaseURL: "https://kralice-production-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "kralice-production",
+            storageBucket: "kralice-production.firebasestorage.app",
+            messagingSenderId: "358316718947",
+            appId: "1:358316718947:web:e0705f35941ebff9283156",
+            measurementId: "G-HNKKP2EMC2"
+        };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        window.veritabaninaGonder = (durum, sarki) => {
+            push(ref(db, 'oyun_verileri/'), { durum, sarki, zaman: Date.now() });
+        };
+    </script>
+    
     <script>
         const songsDatabase = [
     { 
@@ -5694,8 +5715,6 @@ function useJoker50() {
             }
             
             document.getElementById('hintContainer').classList.remove('hidden'); resetIdleTimer(); 
-        }
-
         function checkAnswer(selectedBtn, answerText) {
             if(isProcessing) return;
             clearTimeout(idleTimer);
@@ -5734,6 +5753,9 @@ function useJoker50() {
                     activeProfile.stats.wrongAnswers++;
                     recordStat('wrong');
                     
+                    // Firebase veri gönderimi (Yanlış)
+                    veritabaninaGonder("yanlis", songData ? songData.title : "Genel");
+                    
                     if(currentMode === 'timeAttack') {
                         document.getElementById('timerBar').style.transition = 'none';
                         document.getElementById('timerBar').style.backgroundColor = 'var(--wrong)';
@@ -5747,6 +5769,9 @@ function useJoker50() {
                     
                     if(comboCount > activeProfile.stats.longestStreak) activeProfile.stats.longestStreak = comboCount;
 
+                    // Firebase veri gönderimi (Doğru)
+                    veritabaninaGonder("dogru", songData ? songData.title : "Genel");
+
                     // YENİ EKLENEN KOMBO JOKER ÖDÜLÜ
                     if(comboCount > 0 && comboCount % 5 === 0) {
                         const keys = ['fifty', 'chance', 'pass', 'audience', 'hint'];
@@ -5757,7 +5782,7 @@ function useJoker50() {
                         renderJokers();
                         showToast("Kombo Hediyesi!", `+1 ${names[rJoker]} hakkı kazandın!`, icons[rJoker]);
                     }
-
+                    
                     if(comboCount === 5) {
                         panel.classList.add('shake-screen-light');
                         showComboText(`KOMBO x5!`);
