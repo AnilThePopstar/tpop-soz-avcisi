@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kraliçe Production | Yönetim Kokpiti</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800;900&display=swap');
+        body { font-family: 'Poppins', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass-panel { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(20px); border: 1px solid rgba(244, 114, 182, 0.3); box-shadow: 0 0 30px rgba(244, 114, 182, 0.1); }
+        .neon-text { text-shadow: 0 0 10px rgba(244, 114, 182, 0.8); color: #f472b6; }
+        .neon-border { border: 1px solid #38bdf8; box-shadow: 0 0 15px rgba(56, 189, 248, 0.3); }
+        /* Özel Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #f472b6; border-radius: 4px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sol Menü (Sidebar) -->
+    <aside class="w-64 glass-panel flex flex-col justify-between hidden md:flex z-20">
+        <div>
+            <div class="p-6 text-center border-b border-pink-500/30">
+                <div class="text-5xl mb-2 drop-shadow-lg">👑</div>
+                <h1 class="text-xl font-black neon-text uppercase tracking-widest">Kraliçe Prod.</h1>
+                <p class="text-xs text-gray-400 mt-1 font-bold">Admin Kokpiti v1.0</p>
+            </div>
+            <nav class="p-4 space-y-2">
+                <a href="#" class="flex items-center gap-3 p-3 rounded-xl bg-pink-600/20 text-pink-300 font-bold border border-pink-500/50"><i class="fas fa-chart-line"></i> Genel Bakış</a>
+                <a href="#" class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-gray-300 font-bold transition-colors"><i class="fas fa-users"></i> Oyuncular</a>
+                <a href="#" class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-gray-300 font-bold transition-colors"><i class="fas fa-music"></i> Şarkı Veritabanı</a>
+                <a href="#" class="flex items-center gap-3 p-3 rounded-xl hover:bg-white/5 text-gray-300 font-bold transition-colors"><i class="fas fa-bolt"></i> Speedrun Kralları</a>
+            </nav>
+        </div>
+        <div class="p-4 border-t border-pink-500/30">
+            <button class="w-full py-3 bg-red-600/80 hover:bg-red-500 text-white rounded-xl font-bold shadow-lg transition-colors"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</button>
+        </div>
+    </aside>
+
+    <!-- Ana İçerik -->
+    <main class="flex-1 flex flex-col h-screen overflow-y-auto">
+        <!-- Üst Bar -->
+        <header class="glass-panel m-4 rounded-2xl p-4 flex justify-between items-center z-10">
+            <h2 class="text-2xl font-black text-sky-400 drop-shadow-md"><i class="fas fa-satellite-dish mr-2"></i> Canlı Veri Akışı</h2>
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2 text-sm font-bold bg-green-500/20 text-green-400 px-3 py-1.5 rounded-lg border border-green-500/40">
+                    <span class="relative flex h-3 w-3"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span>
+                    Sistem Aktif
+                </div>
+                <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-xl shadow-lg border-2 border-white/20">A</div>
+            </div>
+        </header>
+
+        <!-- İstatistik Kartları (KPIs) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-4 pb-4">
+            <div class="glass-panel p-5 rounded-2xl border-t-4 border-t-sky-400">
+                <div class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Toplam Oyuncu</div>
+                <div class="text-3xl font-black text-white">1,204</div>
+                <div class="text-green-400 text-xs font-bold mt-2"><i class="fas fa-arrow-up"></i> Bugün +42</div>
+            </div>
+            <div class="glass-panel p-5 rounded-2xl border-t-4 border-t-pink-400">
+                <div class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Oynanan Oyun</div>
+                <div class="text-3xl font-black text-white">8,530</div>
+                <div class="text-pink-400 text-xs font-bold mt-2"><i class="fas fa-gamepad"></i> Klasik Mod Lider</div>
+            </div>
+            <div class="glass-panel p-5 rounded-2xl border-t-4 border-t-amber-400">
+                <div class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Ortalama Oturum</div>
+                <div class="text-3xl font-black text-white">12.4 Dk</div>
+                <div class="text-amber-400 text-xs font-bold mt-2"><i class="fas fa-clock"></i> 7. Soru Bariyeri Kırıldı</div>
+            </div>
+            <div class="glass-panel p-5 rounded-2xl border-t-4 border-t-emerald-400">
+                <div class="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Joker Kullanımı</div>
+                <div class="text-3xl font-black text-white">%68</div>
+                <div class="text-emerald-400 text-xs font-bold mt-2"><i class="fas fa-magic"></i> En çok %50 tercih ediliyor</div>
+            </div>
+        </div>
+
+        <!-- The Truth Table (Kalite Kontrol) -->
+        <div class="px-4 pb-4 flex-1">
+            <div class="glass-panel rounded-2xl h-full flex flex-col">
+                <div class="p-5 border-b border-white/10 flex justify-between items-center">
+                    <h3 class="text-lg font-black text-white"><i class="fas fa-fire text-amber-500 mr-2"></i> Soru Kalite Kontrolü (Truth Table)</h3>
+                    <button class="bg-sky-500/20 text-sky-300 border border-sky-500/50 px-3 py-1 rounded-lg text-xs font-bold hover:bg-sky-500/40 transition-colors">Tümünü Gör</button>
+                </div>
+                <div class="overflow-x-auto p-5">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-gray-400 text-xs uppercase tracking-wider border-b border-white/10">
+                                <th class="pb-3 font-bold">Şarkı / Sanatçı</th>
+                                <th class="pb-3 font-bold">Görülme</th>
+                                <th class="pb-3 font-bold">Doğru Bilinme</th>
+                                <th class="pb-3 font-bold">En Sık Kullanılan Joker</th>
+                                <th class="pb-3 font-bold">Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm">
+                            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                <td class="py-4 font-bold text-white">Makas <span class="text-xs text-gray-400 font-normal block">Banu Erdem (2010)</span></td>
+                                <td class="py-4">1,450</td>
+                                <td class="py-4 text-red-400 font-bold">%12 <i class="fas fa-arrow-down ml-1"></i></td>
+                                <td class="py-4"><span class="bg-amber-500/20 text-amber-300 px-2 py-1 rounded text-xs border border-amber-500/30">İpucu</span></td>
+                                <td class="py-4"><span class="bg-red-500/20 text-red-400 px-2 py-1 rounded text-xs font-bold border border-red-500/30">Çok Zor / Kritik</span></td>
+                            </tr>
+                            <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
+                                <td class="py-4 font-bold text-white">Düm Tek Tek <span class="text-xs text-gray-400 font-normal block">Hadise (2009)</span></td>
+                                <td class="py-4">2,100</td>
+                                <td class="py-4 text-emerald-400 font-bold">%88 <i class="fas fa-arrow-up ml-1"></i></td>
+                                <td class="py-4"><span class="bg-purple-500/20 text-purple-300 px-2 py-1 rounded text-xs border border-purple-500/30">%50</span></td>
+                                <td class="py-4"><span class="bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded text-xs font-bold border border-emerald-500/30">İdeal Zorluk</span></td>
+                            </tr>
+                            <tr class="hover:bg-white/5 transition-colors">
+                                <td class="py-4 font-bold text-white">E Bilemem Artık <span class="text-xs text-gray-400 font-normal block">Gülşen</span></td>
+                                <td class="py-4">850</td>
+                                <td class="py-4 text-amber-400 font-bold">%45 <i class="fas fa-minus ml-1"></i></td>
+                                <td class="py-4"><span class="bg-sky-500/20 text-sky-300 px-2 py-1 rounded text-xs border border-sky-500/30">Pas</span></td>
+                                <td class="py-4"><span class="bg-amber-500/20 text-amber-400 px-2 py-1 rounded text-xs font-bold border border-amber-500/30">Gözden Geçir</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCdNq7HlRH9iOa2z_RJf8bMgQjWKD797Cw",
+        authDomain: "kralice-production.firebaseapp.com",
+        databaseURL: "https://kralice-production-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "kralice-production",
+        storageBucket: "kralice-production.firebasestorage.app",
+        messagingSenderId: "358316718947",
+        appId: "1:358316718947:web:e0705f35941ebff9283156",
+        measurementId: "G-HNKKP2EMC2"
+    };
+
+    const db = getDatabase(initializeApp(firebaseConfig));
+
+    onValue(ref(db, 'oyun_verileri/'), (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            const entries = Object.values(data);
+            const kutular = document.querySelectorAll('.text-3xl.font-black.text-white');
+            
+            // 1. Kutuyu (Toplam Oyuncu) Güncelle
+            if(kutular[0]) kutular[0].innerText = entries.length.toLocaleString();
+            
+            // 2. Kutuyu (Oynanan Oyun) Güncelle
+            if(kutular[1]) kutular[1].innerText = entries.filter(e => e.durum === "dogru").length.toLocaleString();
+        }
+    });
+</script>
+</body>
+</html>
