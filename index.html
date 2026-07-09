@@ -357,6 +357,33 @@
         
         .modal-overlay { backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); }
         .text-bg-guard { background-color: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(5px); }
+
+        /* ---- Mod Butonları: Gradyan + Hover Glow ---- */
+        .mode-btn { position: relative; transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
+        .mode-btn:hover { transform: translateY(-3px) scale(1.02); filter: brightness(1.12); }
+        .mode-grad-classic   { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); border: 1px solid rgba(199,169,255,0.5); }
+        .mode-grad-classic:hover   { box-shadow: 0 0 25px rgba(168,85,247,0.6), 0 8px 20px rgba(0,0,0,0.4); }
+        .mode-grad-timeattack { background: linear-gradient(135deg, #f43f5e 0%, #fb7185 60%, #fbbf24 100%); border: 1px solid rgba(251,113,133,0.5); }
+        .mode-grad-timeattack:hover { box-shadow: 0 0 25px rgba(244,63,94,0.6), 0 8px 20px rgba(0,0,0,0.4); }
+        .mode-grad-queens { background: linear-gradient(135deg, #d946ef 0%, #ec4899 50%, #f59e0b 100%); border: 1px solid rgba(236,72,153,0.5); }
+        .mode-grad-queens:hover { box-shadow: 0 0 30px rgba(236,72,153,0.7), 0 8px 20px rgba(0,0,0,0.4); }
+        .mode-grad-artist { background: linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #06b6d4 100%); border: 1px solid rgba(20,184,166,0.5); }
+        .mode-grad-artist:hover { box-shadow: 0 0 25px rgba(20,184,166,0.6), 0 8px 20px rgba(0,0,0,0.4); }
+        .mode-grad-fillblank { background: linear-gradient(135deg, #ea580c 0%, #f97316 50%, #facc15 100%); border: 1px solid rgba(249,115,22,0.5); }
+        .mode-grad-fillblank:hover { box-shadow: 0 0 25px rgba(249,115,22,0.6), 0 8px 20px rgba(0,0,0,0.4); }
+        .mode-grad-reverse { background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 50%, #06b6d4 100%); border: 1px solid rgba(59,130,246,0.5); }
+        .mode-grad-reverse:hover { box-shadow: 0 0 25px rgba(59,130,246,0.6), 0 8px 20px rgba(0,0,0,0.4); }
+        .mode-grad-nextlyric { background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%); border: 1px solid rgba(16,185,129,0.5); }
+        .mode-grad-nextlyric:hover { box-shadow: 0 0 25px rgba(16,185,129,0.6), 0 8px 20px rgba(0,0,0,0.4); }
+        .mode-grad-guessyear { background: linear-gradient(135deg, #b45309 0%, #f59e0b 50%, #fde047 100%); border: 1px solid rgba(245,158,11,0.5); }
+        .mode-grad-guessyear:hover { box-shadow: 0 0 25px rgba(245,158,11,0.6), 0 8px 20px rgba(0,0,0,0.4); }
+        .mode-grad-endless { background: linear-gradient(135deg, #450a0a 0%, #991b1b 45%, #dc2626 100%); border: 2px solid rgba(220,38,38,0.7); }
+        .mode-grad-endless:hover { box-shadow: 0 0 35px rgba(220,38,38,0.75), 0 8px 25px rgba(0,0,0,0.5); }
+
+        /* ---- Günün Şarkısı Paneli ---- */
+        .daily-song-panel { background: linear-gradient(135deg, #1e1b4b 0%, #581c87 55%, #831843 100%); border: 1px solid rgba(244,114,182,0.4); box-shadow: 0 0 30px rgba(168,85,247,0.25); }
+        .daily-song-arrow { background: rgba(0,0,0,0.35); transition: background 0.2s ease, transform 0.2s ease; }
+        .daily-song-arrow:hover { background: rgba(0,0,0,0.6); transform: scale(1.1); }
     </style>
 </head>
 <body class="flex items-center justify-center p-4" data-theme="default">
@@ -412,7 +439,8 @@
             <h1 id="mainTitle" class="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 cursor-pointer select-none drop-shadow-lg" onclick="triggerTitleEgg()">T-Pop Söz Avcısı</h1>
             <p class="text-gray-300 text-lg">Kariyerini başlatmak için adını gir:</p>
             <input type="text" id="playerName" placeholder="Sahne Adın..." class="w-full bg-black/50 border-2 border-white/20 rounded-xl px-5 py-4 text-white text-center text-xl focus:outline-none focus:border-[var(--accent)] transition-colors shadow-inner">
-            <button onclick="login()" class="w-full bg-[var(--accent)] text-black font-black py-5 rounded-xl text-xl btn-hover-effect shadow-lg shadow-green-500/30 pulse-glow">Kariyeri Başlat <i class="fas fa-arrow-right ml-2"></i></button>
+            <div id="nameCheckMsg" class="hidden text-sm font-bold rounded-xl px-4 py-3"></div>
+            <button id="loginBtn" onclick="login()" class="w-full bg-[var(--accent)] text-black font-black py-5 rounded-xl text-xl btn-hover-effect shadow-lg shadow-green-500/30 pulse-glow">Kariyeri Başlat <i class="fas fa-arrow-right ml-2"></i></button>
         </div>
 
         <div id="dashboardScreen" class="hidden screen-transition">
@@ -433,6 +461,9 @@
                     <div class="bg-black/60 px-5 py-3 rounded-xl font-bold text-amber-400 border border-amber-400/30 cursor-pointer select-none hover:bg-black/80 transition-colors shadow-lg drop-shadow-md" onclick="triggerCoinEgg()" title="Altınlarım">
                         <i class="fas fa-coins text-lg"></i> <span id="dashCoins" class="text-lg ml-1">0</span>
                     </div>
+                    <button onclick="openContactModal()" class="bg-sky-600/90 hover:bg-sky-500 text-white px-4 py-3 rounded-xl font-bold btn-hover-effect border border-sky-400/30 shadow-lg drop-shadow-md" title="İletişim / İstek Gönder">
+                        <i class="fas fa-envelope text-lg"></i>
+                    </button>
                     <button onclick="logout()" class="bg-red-600/90 hover:bg-red-500 text-white px-4 py-3 rounded-xl font-bold btn-hover-effect border border-red-400/30 shadow-lg drop-shadow-md pulse-glow" title="Çıkış Yap">
                         <i class="fas fa-sign-out-alt text-lg"></i>
                     </button>
@@ -444,37 +475,56 @@
                 <div class="bg-black/40 px-4 py-2 rounded-lg text-sm font-bold text-white drop-shadow-md">+200 💰 <i class="fas fa-hand-pointer ml-1"></i></div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <button onclick="startMode('classic')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl btn-hover-effect shadow-md flex flex-col items-center justify-center border border-indigo-400/40 pulse-glow">
-                    <i class="fas fa-gamepad text-2xl mb-1 drop-shadow-md"></i> Klasik Mod <span class="text-xs font-normal opacity-90 drop-shadow-sm">(20 Soru)</span>
-                </button>
-                <button onclick="startMode('timeAttack')" class="bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl btn-hover-effect shadow-md flex flex-col items-center justify-center border border-rose-400/40 pulse-glow">
-                    <i class="fas fa-stopwatch text-2xl mb-1 drop-shadow-md"></i> Zamana Karşı <span class="text-xs font-normal opacity-90 drop-shadow-sm">(30 Sn)</span>
-                </button>
-                <button onclick="startMode('queens')" class="bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold py-4 rounded-xl btn-hover-effect shadow-md flex flex-col items-center justify-center border border-fuchsia-400/40 pulse-glow">
-                    <i class="fas fa-crown text-2xl mb-1 text-yellow-300 drop-shadow-md"></i> Kraliçeler <span class="text-xs font-normal opacity-90 drop-shadow-sm">(Demet, Hande, Gülşen, Hadise, Bengü)</span>
-                </button>
-                <button onclick="startMode('artist')" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-4 rounded-xl btn-hover-effect shadow-md flex flex-col items-center justify-center border border-teal-400/40 pulse-glow">
+            <div class="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-4 mb-6 items-start">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="startMode('classic')" class="mode-btn mode-grad-classic text-white font-bold py-4 rounded-xl shadow-md flex flex-col items-center justify-center">
+                        <i class="fas fa-gamepad text-2xl mb-1 drop-shadow-md"></i> Klasik Mod <span class="text-xs font-normal opacity-90 drop-shadow-sm">(20 Soru)</span>
+                    </button>
+                    <button onclick="startMode('timeAttack')" class="mode-btn mode-grad-timeattack text-white font-bold py-4 rounded-xl shadow-md flex flex-col items-center justify-center">
+                        <i class="fas fa-stopwatch text-2xl mb-1 drop-shadow-md"></i> Zamana Karşı <span class="text-xs font-normal opacity-90 drop-shadow-sm">(30 Sn)</span>
+                    </button>
+                    <button onclick="startMode('queens')" class="mode-btn mode-grad-queens text-white font-bold py-4 rounded-xl shadow-md flex flex-col items-center justify-center">
+                        <i class="fas fa-crown text-2xl mb-1 text-yellow-200 drop-shadow-md"></i> Kraliçeler <span class="text-xs font-normal opacity-90 drop-shadow-sm">(Demet, Hande, Gülşen, Hadise, Bengü)</span>
+                    </button>
+                    <button onclick="startMode('artist')" class="mode-btn mode-grad-artist text-white font-bold py-4 rounded-xl shadow-md flex flex-col items-center justify-center">
                     <i class="fas fa-microphone-alt text-2xl mb-1 drop-shadow-md"></i> Kim Söylüyor? <span class="text-xs font-normal opacity-90 drop-shadow-sm">(Sanatçı Tahmini)</span>
                 </button>
-                <button onclick="startMode('fillBlank')" class="bg-orange-600 hover:bg-orange-500 text-white font-bold py-4 rounded-xl btn-hover-effect shadow-md flex flex-col items-center justify-center border border-orange-400/40 pulse-glow">
+                <button onclick="startMode('fillBlank')" class="mode-btn mode-grad-fillblank text-white font-bold py-4 rounded-xl shadow-md flex flex-col items-center justify-center">
                     <i class="fas fa-puzzle-piece text-2xl mb-1 drop-shadow-md"></i> Şarkıyı Tamamla <span class="text-xs font-normal opacity-90 drop-shadow-sm">(Eksik Kelime)</span>
                 </button>
-                <button onclick="startMode('reverse')" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl btn-hover-effect shadow-md flex flex-col items-center justify-center border border-blue-400/40 pulse-glow">
+                <button onclick="startMode('reverse')" class="mode-btn mode-grad-reverse text-white font-bold py-4 rounded-xl shadow-md flex flex-col items-center justify-center">
                     <i class="fas fa-backward text-2xl mb-1 drop-shadow-md"></i> Tersine Mod <span class="text-xs font-normal opacity-90 drop-shadow-sm">(Şarkıdan Söze)</span>
                 </button>
 
-                <button onclick="startMode('nextLyric')" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl btn-hover-effect shadow-md flex flex-col items-center justify-center border border-emerald-400/40 pulse-glow">
+                <button onclick="startMode('nextLyric')" class="mode-btn mode-grad-nextlyric text-white font-bold py-4 rounded-xl shadow-md flex flex-col items-center justify-center">
                     <i class="fas fa-quote-right text-2xl mb-1 drop-shadow-md"></i> Sözün Devamı <span class="text-xs font-normal opacity-90 drop-shadow-sm">(Sıradaki Sözü Bul)</span>
                 </button>
 
-                <button onclick="startMode('guessYear')" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-4 rounded-xl btn-hover-effect shadow-md flex flex-col items-center justify-center border border-yellow-400/40 pulse-glow">
+                <button onclick="startMode('guessYear')" class="mode-btn mode-grad-guessyear text-white font-bold py-4 rounded-xl shadow-md flex flex-col items-center justify-center">
                     <i class="fas fa-calendar-alt text-2xl mb-1 drop-shadow-md"></i> Hangi Yıl Çıktı? <span class="text-xs font-normal opacity-90 drop-shadow-sm">(Yıl Tahmini)</span>
                 </button>
 
-                <button onclick="startMode('endless')" class="bg-red-800 hover:bg-red-700 text-white font-bold py-5 rounded-xl btn-hover-effect shadow-[0_0_20px_rgba(153,27,27,0.5)] md:col-span-2 border-2 border-red-500/80 relative overflow-hidden group pulse-glow">
-                    <i class="fas fa-skull text-3xl block mb-2 text-red-300 group-hover:animate-pulse drop-shadow-lg"></i> Sonsuz Mod (Ani Ölüm)<br><span class="text-sm font-normal text-red-200 drop-shadow-md">Tek Yanlışta Biter! Serini Koru!</span>
-                </button>
+                    <button onclick="startMode('endless')" class="mode-btn mode-grad-endless text-white font-bold py-5 rounded-xl md:col-span-2 relative overflow-hidden group">
+                        <i class="fas fa-skull text-3xl block mb-2 text-red-200 group-hover:animate-pulse drop-shadow-lg"></i> Sonsuz Mod (Ani Ölüm)<br><span class="text-sm font-normal text-red-100 drop-shadow-md">Tek Yanlışta Biter! Serini Koru!</span>
+                    </button>
+                </div>
+
+                <div id="dailySongPanel" class="hidden daily-song-panel p-3 rounded-2xl relative overflow-hidden md:h-full md:flex md:flex-col md:justify-center">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 id="dailySongHeading" class="text-xs font-black uppercase tracking-widest text-pink-200"><i class="fas fa-star text-amber-300 mr-1"></i> —</h3>
+                    </div>
+                    <div class="text-center">
+                        <div id="dailySongEmoji" class="text-4xl mb-1 drop-shadow-lg">🎵</div>
+                        <div id="dailySongTitle" class="text-base font-black text-white drop-shadow-md">—</div>
+                        <div id="dailySongArtist" class="text-xs text-pink-200 font-semibold mb-2">—</div>
+                        <div id="dailySongAgeText" class="text-[11px] text-amber-200 font-bold bg-black/25 rounded-lg px-2 py-1.5 leading-snug"></div>
+                        <div class="flex items-center justify-center gap-3 mt-3">
+                            <button onclick="dailySongNav(-1)" class="daily-song-arrow w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0"><i class="fas fa-chevron-left text-xs"></i></button>
+                            <div id="dailySongDots" class="flex justify-center gap-1.5"></div>
+                            <button onclick="dailySongNav(1)" class="daily-song-arrow w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0"><i class="fas fa-chevron-right text-xs"></i></button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="grid grid-cols-3 gap-3">
@@ -486,9 +536,10 @@
 
         <div id="gameScreen" class="hidden screen-transition relative">
             <div class="flex justify-between items-center mb-6 text-base font-semibold text-gray-200 bg-black/60 p-4 rounded-xl border border-white/10 shadow-inner backdrop-blur-sm">
-                <div id="gameProgress" class="drop-shadow-md">Soru: <span id="qCount" class="text-white font-bold">1</span></div>
+                <div id="gameProgress" class="drop-shadow-md cursor-pointer select-none" onclick="handleTestModeClick()" title="???">Soru: <span id="qCount" class="text-white font-bold">1</span></div>
                 <div id="livesContainer" class="text-red-500 text-xl flex gap-1 tracking-widest cursor-pointer select-none drop-shadow-md" onclick="triggerHealthEgg()">❤️❤️❤️</div>
                 <button onclick="pauseGame()" class="text-[var(--accent)] hover:text-white transition-colors drop-shadow-md"><i class="fas fa-pause-circle text-3xl"></i></button>
+                <button onclick="openBugReport()" class="text-gray-400 hover:text-red-400 transition-colors drop-shadow-md" title="Bu soruda hata mı var?"><i class="fas fa-bug text-2xl"></i></button>
                 <div class="cursor-pointer select-none hover:text-amber-400 transition-colors drop-shadow-md" onclick="triggerScoreEgg()" title="Sırrı Çöz">Puan: <span id="gameScore" class="text-white font-black text-xl bg-black/50 px-3 py-1 rounded-lg border border-white/10 shadow-inner">0</span></div>
             </div>
 
@@ -865,9 +916,84 @@
         </div>
     </div>
 
+    <!-- Hata Bildirimi (soru bazlı, oyun içinden) -->
+    <div id="bugReportModal" class="fixed inset-0 modal-overlay bg-black/90 z-[110] hidden flex items-center justify-center p-4">
+        <div class="glass-panel p-8 rounded-3xl text-left max-w-md w-full border-2 border-red-500/50 shadow-[0_0_60px_rgba(239,68,68,0.5)] screen-transition">
+            <h2 class="text-2xl font-black mb-1 text-red-400 drop-shadow-lg"><i class="fas fa-bug mr-2"></i> Bu Soruda Hata mı Var?</h2>
+            <p id="bugReportSongInfo" class="text-xs text-gray-400 mb-5"></p>
+
+            <label class="text-xs font-bold text-gray-400 block mb-1">Hata Türü</label>
+            <select id="bugReportType" class="w-full bg-black/50 border-2 border-white/20 rounded-xl px-4 py-3 text-white mb-4 focus:outline-none focus:border-red-400">
+                <option value="soz_hatasi">Söz Hatası (Yazım/İçerik Yanlış)</option>
+                <option value="eslestirme_hatasi">Eşleştirme Hatası (Şıklar/Cevap Yanlış)</option>
+                <option value="teknik_sorun">Teknik Sorun (Ekran, Ses, Buton)</option>
+                <option value="diger">Diğer</option>
+            </select>
+
+            <label class="text-xs font-bold text-gray-400 block mb-1">Açıklama</label>
+            <textarea id="bugReportDesc" rows="3" placeholder="Ne gördün, kısaca anlat..." class="w-full bg-black/50 border-2 border-white/20 rounded-xl px-4 py-3 text-white mb-5 focus:outline-none focus:border-red-400"></textarea>
+
+            <div id="bugReportStatus" class="text-sm font-bold mb-3 hidden"></div>
+
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('bugReportModal').classList.add('hidden')" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold text-white border border-white/20">Vazgeç</button>
+                <button onclick="submitBugReport()" class="flex-1 bg-red-600 hover:bg-red-500 py-3 rounded-xl font-black text-white shadow-lg">Gönder</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Genel İletişim / İstek Merkezi -->
+    <div id="contactModal" class="fixed inset-0 modal-overlay bg-black/90 z-[110] hidden flex items-center justify-center p-4">
+        <div class="glass-panel p-8 rounded-3xl text-left max-w-md w-full border-2 border-sky-500/50 shadow-[0_0_60px_rgba(56,189,248,0.4)] screen-transition">
+            <h2 class="text-2xl font-black mb-5 text-sky-400 drop-shadow-lg"><i class="fas fa-envelope-open-text mr-2"></i> İletişim / İstek</h2>
+
+            <label class="text-xs font-bold text-gray-400 block mb-1">Konu</label>
+            <select id="contactCategory" onchange="onContactCategoryChange()" class="w-full bg-black/50 border-2 border-white/20 rounded-xl px-4 py-3 text-white mb-4 focus:outline-none focus:border-sky-400">
+                <option value="arayuz_hatasi">Arayüz Hatası</option>
+                <option value="tesekkur_diger">Teşekkür / Diğer</option>
+                <option value="sarki_istegi">Eksik Şarkı Ekleme İsteği</option>
+            </select>
+
+            <div id="contactSongFields" class="hidden space-y-3 mb-2">
+                <div>
+                    <label class="text-xs font-bold text-gray-400 block mb-1">Şarkı Adı *</label>
+                    <input id="contactSongTitle" type="text" class="w-full bg-black/50 border-2 border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-sky-400">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 block mb-1">Sanatçı (biliyorsan)</label>
+                        <input id="contactSongArtist" type="text" class="w-full bg-black/50 border-2 border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-sky-400">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 block mb-1">Çıkış Yılı (biliyorsan)</label>
+                        <input id="contactSongYear" type="number" placeholder="Örn: 2014" class="w-full bg-black/50 border-2 border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-sky-400">
+                    </div>
+                </div>
+            </div>
+
+            <div id="contactSuggestionBox" class="hidden bg-amber-900/40 border border-amber-500/50 text-amber-100 p-4 rounded-xl text-sm mb-4">
+                <p class="mb-3 font-semibold"></p>
+                <div class="flex gap-3">
+                    <button onclick="closeContactModal()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 py-2.5 rounded-lg font-bold text-white text-sm">Evet (Menüye Dön)</button>
+                    <button onclick="forceSendSongRequest()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2.5 rounded-lg font-bold text-white text-sm border border-white/20">Hayır, Yine de Gönder</button>
+                </div>
+            </div>
+
+            <label class="text-xs font-bold text-gray-400 block mb-1">Mesajın</label>
+            <textarea id="contactMessage" rows="3" placeholder="Ne düşünüyorsun?" class="w-full bg-black/50 border-2 border-white/20 rounded-xl px-4 py-3 text-white mb-5 focus:outline-none focus:border-sky-400"></textarea>
+
+            <div id="contactStatus" class="text-sm font-bold mb-3 hidden"></div>
+
+            <div id="contactMainButtons" class="flex gap-3">
+                <button onclick="document.getElementById('contactModal').classList.add('hidden')" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl font-bold text-white border border-white/20">Kapat</button>
+                <button onclick="submitContactRequest()" class="flex-1 bg-sky-600 hover:bg-sky-500 py-3 rounded-xl font-black text-white shadow-lg">Gönder</button>
+            </div>
+        </div>
+    </div>
+
 <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        import { getDatabase, ref, push, set, get, update } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCdNq7HlRH9iOa2z_RJf8bMgQjWKD797Cw",
@@ -899,20 +1025,104 @@
             return String(str).replace(/[.#$\[\]\/]/g, '_').trim();
         }
 
+        // Admin panelinden eklenen ek şarkıları çeker (yerel songsDatabase'e sonradan eklenecek).
+        window.sarkilariFirebasedenGetir = async () => {
+            try {
+                const snap = await get(ref(db, 'songs'));
+                return snap.exists() ? Object.values(snap.val()) : [];
+            } catch (err) {
+                console.error("❌ Ek şarkılar okunurken hata:", err.code, err.message);
+                return [];
+            }
+        };
+
+        // Bu isim Firebase'de zaten kayıtlı mı? (bağlantı hatasında oyuncuyu bloke etmemek için false döner)
+        window.isimMevcutMu = async (name) => {
+            try {
+                const key = sanitizeKey(name);
+                const snap = await get(ref(db, 'users/' + key));
+                return snap.exists();
+            } catch (err) {
+                console.error("❌ İsim kontrol hatası:", err.code, err.message);
+                return false;
+            }
+        };
+
+        // İsim doluysa sonuna rastgele bir sayı ekleyerek boş bir alternatif bulur.
+        window.benzersizIsimOner = async (name) => {
+            for (let i = 0; i < 5; i++) {
+                const suffix = Math.floor(100 + Math.random() * 900);
+                const candidate = `${name}_${suffix}`;
+                const taken = await window.isimMevcutMu(candidate);
+                if (!taken) return candidate;
+            }
+            return `${name}_${Date.now().toString().slice(-5)}`;
+        };
+
         // Aynı anda çok fazla yazma isteği göndermemek için 800ms'lik bir bekleme (debounce) uygulanır.
+        // ÖNEMLİ: set() değil update() kullanıyoruz. set() tüm node'un üzerine yazar ve admin panelinin
+        // yazdığı adminInbox / createdAt gibi alanları SİLER. update() sadece verilen alanları dokunur.
         let _profilSyncTimer = null;
         window.profiliFirebaseaKaydet = (profile) => {
             if (!profile || !profile.username) return;
             clearTimeout(_profilSyncTimer);
             _profilSyncTimer = setTimeout(() => {
                 const key = sanitizeKey(profile.username);
-                set(ref(db, 'users/' + key), {
-                    ...profile,
+                const { createdAt, ...profileWithoutCreatedAt } = profile; // createdAt admin tarafından yönetilir, istemci ezmesin.
+                update(ref(db, 'users/' + key), {
+                    ...profileWithoutCreatedAt,
                     lastSeen: Date.now()
                 })
                     .then(() => console.log("✅ Profil Firebase'e senkronize edildi:", key))
                     .catch((err) => console.error("❌ Firebase PROFİL YAZMA HATASI:", err.code, err.message));
             }, 800);
+        };
+
+        // Genel amaçlı rapor/istek gönderme fonksiyonu (hata bildirimi, şarkı isteği, genel mesaj).
+        window.raporGonder = (koleksiyon, veri) => {
+            return push(ref(db, koleksiyon), { ...veri, zaman: Date.now(), durum: 'yeni' });
+        };
+
+        // ÖNEMLİ: type="module" script'ler tarayıcıda "deferred" çalışır, yani bu script
+        // aşağıdaki normal <script> bloğundan SONRA çalışabilir. Bu yüzden yukarıdaki
+        // window.* fonksiyonları hazır olduğunda haber veriyoruz; klasik script bunu bekliyor.
+        window.kraliceDbHazir = true;
+        window.dispatchEvent(new Event('kraliceDbReady'));
+
+        // Admin panelinden yönetilen mod bazlı kara liste (Hariç Tut) - modlar için sanatçı/şarkı filtrelemede kullanılır.
+        window.blacklistCache = {};
+        onValue(ref(db, 'blacklist'), (snapshot) => {
+            window.blacklistCache = snapshot.val() || {};
+        });
+
+        // Admin tarafından oyuncuya gönderilen ödül/uyarı mesajlarını okumak için.
+        window.adminInboxOku = async (username) => {
+            try {
+                const key = sanitizeKey(username);
+                const snap = await get(ref(db, 'users/' + key + '/adminInbox'));
+                return snap.exists() ? snap.val() : null;
+            } catch (err) {
+                console.error("❌ Admin gelen kutusu okunamadı:", err);
+                return null;
+            }
+        };
+        window.adminInboxTemizle = async (username, pushKey) => {
+            try {
+                await set(ref(db, 'users/' + sanitizeKey(username) + '/adminInbox/' + pushKey), null);
+            } catch (err) {
+                console.error("❌ Admin mesajı temizlenemedi:", err);
+            }
+        };
+
+        // Admin panelinden düzeltilen katılım tarihini okur.
+        window.createdAtGetir = async (username) => {
+            try {
+                const snap = await get(ref(db, 'users/' + sanitizeKey(username) + '/createdAt'));
+                return snap.exists() ? snap.val() : null;
+            } catch (err) {
+                console.error("❌ createdAt okunamadı:", err);
+                return null;
+            }
         };
     </script>
     
@@ -4288,6 +4498,59 @@
     }
 ];
 
+// Admin panelinden eklenen ek şarkıları Firebase'den çekip yerel listeye ekliyoruz.
+// Not: type="module" script bu script'ten SONRA çalışabildiği için, hazır olma sinyalini bekliyoruz.
+function whenDbHazir(callback) {
+    if (window.kraliceDbHazir) callback();
+    else window.addEventListener('kraliceDbReady', callback, { once: true });
+}
+
+function sarkiVeritabaniniGenislet() {
+    (async () => {
+        try {
+            if (typeof window.sarkilariFirebasedenGetir !== 'function') return;
+            const ekSarkilar = await window.sarkilariFirebasedenGetir();
+            let eklenen = 0, guncellenen = 0;
+            ekSarkilar.forEach(s => {
+                if (!s || !s.title || !s.artist) return;
+                const normalize = (song) => ({
+                    title: song.title,
+                    artist: song.artist,
+                    year: song.year || null,
+                    releaseDate: song.releaseDate || null,
+                    coverId: song.coverId || "",
+                    language: song.language || "tr",
+                    isForeignGuest: !!song.isForeignGuest,
+                    emoji: song.emoji || "🎵",
+                    hint: song.hint || "",
+                    reverseHint: song.reverseHint || "",
+                    lyrics: Array.isArray(song.lyrics) ? song.lyrics : []
+                });
+                const mevcutIndex = songsDatabase.findIndex(mevcut => mevcut.title === s.title && mevcut.artist === s.artist);
+                if (mevcutIndex === -1) {
+                    songsDatabase.push(normalize(s));
+                    eklenen++;
+                } else {
+                    // ÖNEMLİ: Firebase'deki (admin panelinden düzenlenebilen) veri her zaman
+                    // yereldeki (koda gömülü, düzeltilemeyen) veriye göre önceliklidir. Böylece
+                    // admin "Bodurma" -> "Bodrum" gibi bir yazım hatasını düzelttiğinde oyun bunu yansıtır.
+                    songsDatabase[mevcutIndex] = normalize(s);
+                    guncellenen++;
+                }
+            });
+            if (eklenen > 0 || guncellenen > 0) console.log(`✅ Firebase senkronizasyonu: ${eklenen} yeni şarkı eklendi, ${guncellenen} şarkı güncellendi. Toplam şarkı: ${songsDatabase.length}`);
+
+            // ÖNEMLİ: Bu birleştirme async olduğu için, panel ilk açıldığında (özellikle
+            // hızlı giriş yapan geri dönen oyuncularda) henüz songsDatabase güncellenmemiş
+            // olabilir. Merge bittiğinde, dashboard açıksa paneli tekrar çiziyoruz.
+            if (typeof window.renderDailySongPanel === 'function') window.renderDailySongPanel();
+        } catch (err) {
+            console.error("❌ Ek şarkılar çekilirken hata:", err);
+        }
+    })();
+}
+whenDbHazir(sarkiVeritabaniniGenislet);
+
 const yearHints = {
     1990: "Türkiye'de ilk özel televizyon kanalının yayına başladığı, atari salonlarının ve kasetlerin altın çağını yaşadığı yıl.",
     1991: "Yonca Evcimik'in 'Abone' ile patladığı ve internetin (WWW) ilk kez halka açılarak dünyayı değiştirmeye başladığı sene.",
@@ -4475,6 +4738,52 @@ const artistHints = {
         
         let playedQuestions = []; // Soru tekrarını önleyen HAVUZ
 
+        // ================= GİZLİ TEST MODU =================
+        let testModeActive = false;
+        let testModeClickCount = 0;
+        let testModeClickTimer = null;
+        let testModeBackup = null;
+        let testModeIndex = 0;
+
+        function handleTestModeClick() {
+            testModeClickCount++;
+            clearTimeout(testModeClickTimer);
+            testModeClickTimer = setTimeout(() => { testModeClickCount = 0; }, 1500);
+            if (testModeClickCount >= 3) {
+                testModeClickCount = 0;
+                toggleTestMode();
+            }
+        }
+
+        function toggleTestMode() {
+            if (!activeProfile) return;
+            if (!testModeActive) {
+                // Test moduna gir: mevcut ilerlemeyi dondur.
+                testModeBackup = { playedQuestions: [...playedQuestions], questionCount, maxQuestions };
+                testModeActive = true;
+                testModeIndex = 0;
+                showToast("🛠️ TEST MODU", "Aktif! Veritabanı sondan başa sıralı gösteriliyor.", "🛠️");
+
+                if (!activeProfile.achievements.includes('easter_hacker')) {
+                    activeProfile.achievements.push('easter_hacker');
+                    activeProfile.coins += 1000;
+                    saveAppData();
+                    setTimeout(() => showToast("Gizli Başarım!", "Sistem Korsanı rozetini buldun! +1000 Altın", "👾"), 1200);
+                }
+            } else {
+                // Test modundan çık: dondurulmuş ilerlemeyi geri yükle, kaldığın sorudan devam et.
+                testModeActive = false;
+                if (testModeBackup) {
+                    playedQuestions = testModeBackup.playedQuestions;
+                    questionCount = testModeBackup.questionCount;
+                    maxQuestions = testModeBackup.maxQuestions;
+                    testModeBackup = null;
+                }
+                showToast("Test Modu Kapalı", "Kaldığın yerden devam ediyorsun.", "✅");
+            }
+            loadQuestion();
+        }
+
         let comboCount = 0;
         let titleClicks = 0;
         let coinClicks = 0;
@@ -4510,12 +4819,13 @@ const artistHints = {
             { id: "combo_master", title: "Ateş Ediyor", desc: "Üst üste 5 soru bildin.", icon: "☄️", reward: 400 },
             { id: "rich_kid", title: "Para Babası", desc: "Aynı anda 5000 altına ulaştın.", icon: "💰", reward: 1000 },
             { id: "speed_demon", title: "Hız Tutkunu", desc: "Soruyu 2 saniyenin altında bildin.", icon: "🚀", reward: 500 },
-            { id: "easter_sebastian", title: "Sırdaş", desc: "Gizli bir isimle giriş yaptın.", icon: "🤫", reward: 500 },
-            { id: "easter_banker", title: "Zula Patladı", desc: "Gizli altın zulasını buldun.", icon: "🏦", reward: 200 },
+            { id: "easter_sebastian", title: "Sırdaş", desc: "Gizli bir isimle giriş yaptın.", icon: "🤫", reward: 500, secret: true, lockedTitle: "???", lockedDesc: "Gizli bir isimle giriş yaptın." },
+            { id: "easter_banker", title: "Zula Patladı", desc: "Gizli altın zulasını buldun.", icon: "🏦", reward: 200, secret: true, lockedTitle: "???", lockedDesc: "Ekranın bir yerinde gizli bir zula olabilir..." },
             { id: "demetolog", title: "Demetolog", desc: "Demetolog unvanını satın aldın.", icon: "🎓", reward: 300 },
-            { id: "easter_hacker", title: "Sistem Korsanı", desc: "Gizli puan hilesini buldun.", icon: "👾", reward: 300 },
+            { id: "easter_hacker", title: "Sistem Korsanı", desc: "Gizli puan hilesini buldun.", icon: "👾", reward: 300, secret: true, lockedTitle: "???", lockedDesc: "Sistemde gizli bir açık olabilir..." },
             { id: "title_collector", title: "İsim Zenginliği", desc: "3'ten fazla unvan satın aldın.", icon: "🏷️", reward: 400 },
-            { id: "night_owl", title: "Gece Kuşu", desc: "Gece temasını açtın.", icon: "🦉", reward: 300 }
+            { id: "night_owl", title: "Gece Kuşu", desc: "Gece temasını açtın.", icon: "🦉", reward: 300 },
+            { id: "pas_efsanesi", title: "Pas Efsanesi", desc: "Tam da 'Pas' şarkısı sorulurken Pas jokerini kullandın.", icon: "🃏", reward: 500, secret: true, lockedTitle: "???", lockedDesc: "Pas için gizli bir görev var..." }
         ];
 
         function getLeague(score) {
@@ -4526,9 +4836,9 @@ const artistHints = {
             return {name: "Acemi Popçu", icon: "🎧", color: "text-gray-300"};
         }
 
-        function initAudio() {
+        async function initAudio() {
             if(!isAudioInit) {
-                Tone.start();
+                await Tone.start(); // Ses motoru tam olarak hazır olmadan synth oluşturursak ilk ses bozuk/gürültülü çıkabiliyor.
                 synth = new Tone.Synth().toDestination();
                 bgmSynth = new Tone.PolySynth(Tone.Synth, {
                     oscillator: { type: "sine" },
@@ -4536,17 +4846,31 @@ const artistHints = {
                 }).toDestination();
                 bgmSynth.volume.value = -25; 
                 isAudioInit = true;
+            } else if (Tone.context.state !== 'running') {
+                await Tone.start();
             }
         }
 
+        let _pendingSoundTimeout = null;
         function playSound(type) {
             if(!synth) return;
             try {
                 if(Tone.context.state !== 'running') Tone.context.resume();
-                if(type === 'correct') { synth.triggerAttackRelease("C5", "8n"); setTimeout(() => { try{synth.triggerAttackRelease("E5", "8n");}catch(e){} }, 150); }
+                // Önceki notanın (ve önceki sesin gecikmeli ikinci notasının) "takılı" kalmasını
+                // önlemek için yeni sesten önce HER ZAMAN mevcut sesi ve bekleyen zamanlayıcıyı durdur.
+                try { synth.triggerRelease(); } catch(e){}
+                if (_pendingSoundTimeout) { clearTimeout(_pendingSoundTimeout); _pendingSoundTimeout = null; }
+
+                if(type === 'correct') {
+                    synth.triggerAttackRelease("C5", "8n");
+                    _pendingSoundTimeout = setTimeout(() => { try{ synth.triggerRelease(); synth.triggerAttackRelease("E5", "8n"); }catch(e){} _pendingSoundTimeout = null; }, 150);
+                }
                 else if(type === 'wrong') { synth.triggerAttackRelease("G2", "8n"); }
                 else if(type === 'tick') { synth.triggerAttackRelease("C6", "32n", "+0", 0.05); }
-                else if(type === 'win') { synth.triggerAttackRelease("G4", "8n"); setTimeout(() => { try{synth.triggerAttackRelease("C5", "4n");}catch(e){} }, 200); }
+                else if(type === 'win') {
+                    synth.triggerAttackRelease("G4", "8n");
+                    _pendingSoundTimeout = setTimeout(() => { try{ synth.triggerRelease(); synth.triggerAttackRelease("C5", "4n"); }catch(e){} _pendingSoundTimeout = null; }, 200);
+                }
             } catch(e) { console.warn("Ses efekti uyarı:", e); }
         }
 
@@ -4871,10 +5195,18 @@ function spawnThemeParticles() {
             showToast("Günlük Ödül", "200 Altın hesabına eklendi!", "🎁");
         }
 
-        function login() {
+        async function login() {
             let name = document.getElementById('playerName').value.trim();
             if(!name) { showToast("Hata", "Lütfen sahne adını gir!", "⚠️"); return; }
-            initAudio();
+            // ÖNEMLİ: initAudio() BURADA await EDİLMEZ. Tone.start() tarayıcı politikası
+            // gereği gerçek bir kullanıcı jesti (tıklama vb.) olmadan hiç resolve olmaz.
+            // Otomatik girişte (sayfa yenilenince) bu await sonsuza kadar takılıp giriş
+            // ekranını hiç geçemezdik. Ses, ilk gerçek tıklamada kendiliğinden devreye girer.
+            initAudio().catch(() => {});
+
+            const msgBox = document.getElementById('nameCheckMsg');
+            const loginBtn = document.getElementById('loginBtn');
+            msgBox.classList.add('hidden');
             
             try {
                 let data = localStorage.getItem('tpop_profile_' + name);
@@ -4884,6 +5216,28 @@ function spawnThemeParticles() {
                     let oldData2 = localStorage.getItem('tpop_profile_Anıl');
                     if (oldData1) { data = oldData1; showToast("Veriler Kurtarıldı!", "Eski ilerlemelerin başarıyla geri getirildi.", "♻️"); }
                     else if (oldData2) { data = oldData2; showToast("Veriler Kurtarıldı!", "Eski ilerlemelerin başarıyla geri getirildi.", "♻️"); }
+                }
+
+                // Bu isim bu tarayıcıda hiç kullanılmamışsa (yeni profil), Firebase'de başkası almış mı diye bakıyoruz.
+                if(!data && typeof window.isimMevcutMu === 'function') {
+                    loginBtn.disabled = true;
+                    loginBtn.innerText = "Kontrol ediliyor...";
+                    const alinmis = await window.isimMevcutMu(name);
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = 'Kariyeri Başlat <i class="fas fa-arrow-right ml-2"></i>';
+
+                    if (alinmis) {
+                        const oneri = await window.benzersizIsimOner(name);
+                        msgBox.className = "text-sm font-bold rounded-xl px-4 py-3 bg-red-500/20 text-red-300 border border-red-500/40";
+                        msgBox.innerHTML = `⚠️ Bu sahne adı zaten alınmış! Denemek ister misin: <button onclick="document.getElementById('playerName').value='${oneri}'; login();" class="underline font-black text-white">${oneri}</button>`;
+                        msgBox.classList.remove('hidden');
+                        return;
+                    } else {
+                        msgBox.className = "text-sm font-bold rounded-xl px-4 py-3 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+                        msgBox.innerText = "✅ Bu sahne adı boş, hayırlı olsun!";
+                        msgBox.classList.remove('hidden');
+                        setTimeout(() => msgBox.classList.add('hidden'), 2500);
+                    }
                 }
 
                 if(data) {
@@ -4947,6 +5301,214 @@ function spawnThemeParticles() {
             document.getElementById('loginScreen').classList.remove('hidden');
             applyTheme('default');
             applyFrame('');
+        }
+
+        // ============================================================
+        // HATA BİLDİRİMİ VE İLETİŞİM / İSTEK SİSTEMİ
+        // ============================================================
+
+        // --- Hata Bildirimi (soru bazlı) ---
+        function openBugReport() {
+            const song = window.currentCorrectSongObj;
+            const info = song ? `${song.title} — ${song.artist} (${currentMode} modu)` : `Bilinmeyen soru (${currentMode} modu)`;
+            document.getElementById('bugReportSongInfo').innerText = info;
+            document.getElementById('bugReportType').value = 'soz_hatasi';
+            document.getElementById('bugReportDesc').value = '';
+            const statusEl = document.getElementById('bugReportStatus');
+            statusEl.classList.add('hidden');
+            document.getElementById('bugReportModal').classList.remove('hidden');
+        }
+
+        function submitBugReport() {
+            const statusEl = document.getElementById('bugReportStatus');
+            const desc = document.getElementById('bugReportDesc').value.trim();
+            if (!desc) {
+                statusEl.className = 'text-sm font-bold mb-3 text-red-400';
+                statusEl.innerText = '⚠️ Lütfen kısaca açıkla.';
+                statusEl.classList.remove('hidden');
+                return;
+            }
+            if (typeof window.raporGonder !== 'function') {
+                statusEl.className = 'text-sm font-bold mb-3 text-red-400';
+                statusEl.innerText = '❌ Sistem hazır değil, birazdan tekrar dene.';
+                statusEl.classList.remove('hidden');
+                return;
+            }
+
+            const song = window.currentCorrectSongObj;
+            const rapor = {
+                tur: document.getElementById('bugReportType').value,
+                aciklama: desc,
+                sarki: song ? song.title : 'Bilinmiyor',
+                sanatci: song ? song.artist : 'Bilinmiyor',
+                mod: currentMode,
+                oyuncu: activeProfile ? activeProfile.username : 'Anonim'
+            };
+
+            statusEl.className = 'text-sm font-bold mb-3 text-sky-300';
+            statusEl.innerText = 'Gönderiliyor...';
+            statusEl.classList.remove('hidden');
+
+            window.raporGonder('hata_raporlari', rapor)
+                .then(() => {
+                    statusEl.className = 'text-sm font-bold mb-3 text-emerald-400';
+                    statusEl.innerText = '✅ Teşekkürler! Bildirimin bize ulaştı.';
+                    setTimeout(() => document.getElementById('bugReportModal').classList.add('hidden'), 1500);
+                })
+                .catch(err => {
+                    console.error('❌ Hata raporu gönderilemedi:', err);
+                    statusEl.className = 'text-sm font-bold mb-3 text-red-400';
+                    statusEl.innerText = '❌ Gönderilemedi, internet bağlantını kontrol et.';
+                });
+        }
+
+        // --- Türkçe karakterleri sadeleştirip küçük harfe çeviren yardımcı fonksiyon ---
+        function trSadelestir(str) {
+            return String(str)
+                .toLocaleLowerCase('tr-TR')
+                .replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g')
+                .replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/ç/g, 'c')
+                .replace(/[^a-z0-9\s]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        // --- İstenen şarkı, veritabanında zaten var mı veya başka bir şarkının sözlerinde mi geçiyor? ---
+        function benzerSarkiAra(istenenBaslik, istenenSanatci) {
+            const hedefBaslik = trSadelestir(istenenBaslik);
+            if (!hedefBaslik) return null;
+
+            // 1. Başlık benzerliği: istenen isim, mevcut bir şarkının adının içinde geçiyor mu (ya da tam tersi)?
+            for (const s of songsDatabase) {
+                const mevcutBaslik = trSadelestir(s.title);
+                const sanatciEslesiyor = !istenenSanatci || trSadelestir(s.artist).includes(trSadelestir(istenenSanatci)) || trSadelestir(istenenSanatci).includes(trSadelestir(s.artist));
+                if ((mevcutBaslik.includes(hedefBaslik) || hedefBaslik.includes(mevcutBaslik)) && (sanatciEslesiyor || mevcutBaslik === hedefBaslik)) {
+                    return { tur: 'baslik', sarki: s.title, sanatci: s.artist, detay: null };
+                }
+            }
+
+            // 2. Söz benzerliği: istenen isim, başka bir şarkının sözlerinde geçiyor mu?
+            for (const s of songsDatabase) {
+                for (const dize of (s.lyrics || [])) {
+                    const temizDize = trSadelestir(dize.replace(/<br>/g, ' '));
+                    if (temizDize.includes(hedefBaslik)) {
+                        return { tur: 'soz', sarki: s.title, sanatci: s.artist, detay: dize.replace(/<br>/g, ' / ') };
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        function openContactModal() {
+            document.getElementById('contactCategory').value = 'arayuz_hatasi';
+            document.getElementById('contactSongTitle').value = '';
+            document.getElementById('contactSongArtist').value = '';
+            document.getElementById('contactSongYear').value = '';
+            document.getElementById('contactMessage').value = '';
+            document.getElementById('contactSongFields').classList.add('hidden');
+            document.getElementById('contactSuggestionBox').classList.add('hidden');
+            document.getElementById('contactMainButtons').classList.remove('hidden');
+            document.getElementById('contactStatus').classList.add('hidden');
+            document.getElementById('contactModal').classList.remove('hidden');
+        }
+
+        function closeContactModal() {
+            document.getElementById('contactModal').classList.add('hidden');
+        }
+
+        function onContactCategoryChange() {
+            const kategori = document.getElementById('contactCategory').value;
+            document.getElementById('contactSongFields').classList.toggle('hidden', kategori !== 'sarki_istegi');
+            document.getElementById('contactSuggestionBox').classList.add('hidden');
+            document.getElementById('contactMainButtons').classList.remove('hidden');
+        }
+
+        function submitContactRequest() {
+            const kategori = document.getElementById('contactCategory').value;
+            const statusEl = document.getElementById('contactStatus');
+
+            if (kategori === 'sarki_istegi') {
+                const baslik = document.getElementById('contactSongTitle').value.trim();
+                const sanatci = document.getElementById('contactSongArtist').value.trim();
+                if (!baslik) {
+                    statusEl.className = 'text-sm font-bold mb-3 text-red-400';
+                    statusEl.innerText = '⚠️ Şarkı adını yazmalısın.';
+                    statusEl.classList.remove('hidden');
+                    return;
+                }
+
+                const eslesme = benzerSarkiAra(baslik, sanatci);
+                if (eslesme) {
+                    const kutu = document.getElementById('contactSuggestionBox');
+                    const metin = eslesme.tur === 'baslik'
+                        ? `Bunu mu demek istediniz: <b>${eslesme.sarki} - ${eslesme.sanatci}</b>? Bu şarkı zaten veritabanımızda var.`
+                        : `Bunu mu demek istediniz: <b>${eslesme.sarki} - ${eslesme.sanatci}</b>? Aradığın kelime bu şarkının sözlerinde geçiyor: "${eslesme.detay}"`;
+                    kutu.querySelector('p').innerHTML = metin;
+                    kutu.classList.remove('hidden');
+                    document.getElementById('contactMainButtons').classList.add('hidden');
+                    return;
+                }
+            }
+
+            gercekIstegiGonder();
+        }
+
+        // Kullanıcı "Hayır, yine de gönder" dediğinde (öneri kutusunu atlayıp) gönderimi zorlar.
+        function forceSendSongRequest() {
+            document.getElementById('contactSuggestionBox').classList.add('hidden');
+            gercekIstegiGonder();
+        }
+
+        function gercekIstegiGonder() {
+            const statusEl = document.getElementById('contactStatus');
+            const kategori = document.getElementById('contactCategory').value;
+            const mesaj = document.getElementById('contactMessage').value.trim();
+
+            if (kategori !== 'sarki_istegi' && !mesaj) {
+                statusEl.className = 'text-sm font-bold mb-3 text-red-400';
+                statusEl.innerText = '⚠️ Lütfen bir mesaj yaz.';
+                statusEl.classList.remove('hidden');
+                return;
+            }
+            if (typeof window.raporGonder !== 'function') {
+                statusEl.className = 'text-sm font-bold mb-3 text-red-400';
+                statusEl.innerText = '❌ Sistem hazır değil, birazdan tekrar dene.';
+                statusEl.classList.remove('hidden');
+                return;
+            }
+
+            const oyuncu = activeProfile ? activeProfile.username : 'Anonim';
+            let koleksiyon = 'genel_mesajlar';
+            let veri = { kategori, mesaj, oyuncu };
+
+            if (kategori === 'sarki_istegi') {
+                koleksiyon = 'sarki_istekleri';
+                veri = {
+                    kategori,
+                    baslik: document.getElementById('contactSongTitle').value.trim(),
+                    sanatci: document.getElementById('contactSongArtist').value.trim() || 'Belirtilmedi',
+                    yil: document.getElementById('contactSongYear').value.trim() || null,
+                    mesaj,
+                    oyuncu
+                };
+            }
+
+            statusEl.className = 'text-sm font-bold mb-3 text-sky-300';
+            statusEl.innerText = 'Gönderiliyor...';
+            statusEl.classList.remove('hidden');
+
+            window.raporGonder(koleksiyon, veri)
+                .then(() => {
+                    statusEl.className = 'text-sm font-bold mb-3 text-emerald-400';
+                    statusEl.innerText = '✅ Teşekkürler! İsteğin bize ulaştı.';
+                    setTimeout(closeContactModal, 1500);
+                })
+                .catch(err => {
+                    console.error('❌ İstek gönderilemedi:', err);
+                    statusEl.className = 'text-sm font-bold mb-3 text-red-400';
+                    statusEl.innerText = '❌ Gönderilemedi, internet bağlantını kontrol et.';
+                });
         }
         
         function openEditProfile() {
@@ -5043,6 +5605,93 @@ function spawnThemeParticles() {
             return "-";
         }
 
+        // ================= GÜNÜN ŞARKISI =================
+        function isGununSarkisi(song) {
+            if (!song || !song.releaseDate) return false;
+            const rd = song.releaseDate;
+            if (!rd.day || !rd.month) return false;
+            const today = new Date();
+            return rd.day === today.getDate() && rd.month === (today.getMonth() + 1);
+        }
+
+        function getGununSarkilari() {
+            return songsDatabase.filter(s => isGununSarkisi(s));
+        }
+
+        let _dailySongIndex = 0;
+        function renderDailySongPanel() {
+            const panel = document.getElementById('dailySongPanel');
+            const list = getGununSarkilari();
+            if (list.length === 0) { panel.classList.add('hidden'); return; }
+
+            if (_dailySongIndex >= list.length) _dailySongIndex = 0;
+            const song = list[_dailySongIndex];
+            document.getElementById('dailySongEmoji').innerText = song.emoji || '🎵';
+            document.getElementById('dailySongTitle').innerText = song.title;
+            document.getElementById('dailySongArtist').innerText = song.artist;
+
+            const heading = document.getElementById('dailySongHeading');
+            const ageText = document.getElementById('dailySongAgeText');
+            const releaseYear = song.releaseDate && song.releaseDate.year ? song.releaseDate.year : null;
+
+            if (releaseYear) {
+                const currentYear = new Date().getFullYear();
+                const age = currentYear - releaseYear;
+                heading.innerHTML = `<i class="fas fa-star text-amber-300 mr-1"></i> Günün Şarkısı`;
+                ageText.innerText = age > 0
+                    ? `Bugün ${age} yaşına girdi! (Orijinal Çıkış: ${releaseYear}) · 2x Puan 🌟`
+                    : `Bugün çıktı! · 2x Puan 🌟`;
+            } else {
+                heading.innerHTML = `<i class="fas fa-star text-amber-300 mr-1"></i> Günün Şarkısı`;
+                ageText.innerText = `2x Puan Kazandırıyor 🌟`;
+            }
+
+            const dots = document.getElementById('dailySongDots');
+            dots.innerHTML = list.map((_, i) => `<span class="w-2 h-2 rounded-full ${i === _dailySongIndex ? 'bg-amber-300' : 'bg-white/25'}"></span>`).join('');
+
+            panel.classList.remove('hidden');
+        }
+
+        function dailySongNav(dir) {
+            const list = getGununSarkilari();
+            if (list.length === 0) return;
+            _dailySongIndex = (_dailySongIndex + dir + list.length) % list.length;
+            renderDailySongPanel();
+        }
+
+        // ================= ADMİN ÖDÜL / UYARI KUTUSU =================
+        async function checkAdminInbox() {
+            if (!activeProfile || typeof window.adminInboxOku !== 'function') return;
+            try {
+                // Admin'in düzelttiği katılım tarihi varsa, yerel profile de yansıt.
+                if (typeof window.createdAtGetir === 'function') {
+                    const remoteCreatedAt = await window.createdAtGetir(activeProfile.username);
+                    if (remoteCreatedAt && remoteCreatedAt !== activeProfile.createdAt) {
+                        activeProfile.createdAt = remoteCreatedAt;
+                    }
+                }
+
+                const inbox = await window.adminInboxOku(activeProfile.username);
+                if (!inbox) { saveAppData(); return; }
+                for (const [pushKey, msg] of Object.entries(inbox)) {
+                    if (!msg) continue;
+                    if (msg.type === 'reward') {
+                        if (msg.coins) { activeProfile.coins += Number(msg.coins) || 0; }
+                        if (msg.title && !activeProfile.titles.includes(msg.title)) { activeProfile.titles.push(msg.title); }
+                        showToast("Yönetimden Ödül!", msg.mesaj || `${msg.coins ? '+' + msg.coins + ' Altın ' : ''}${msg.title ? 'Yeni unvan: ' + msg.title : ''}`, "🎁");
+                        playSound('win');
+                        saveAppData();
+                    } else if (msg.type === 'warning') {
+                        showToast("Yönetimden Uyarı", msg.mesaj || "Lütfen kurallara dikkat et.", "⚠️");
+                    }
+                    await window.adminInboxTemizle(activeProfile.username, pushKey);
+                }
+                document.getElementById('dashCoins').innerText = activeProfile.coins;
+            } catch (err) {
+                console.error("❌ Admin gelen kutusu kontrol hatası:", err);
+            }
+        }
+
         function showDashboard() {
             hideAllScreens();
             document.getElementById('dashName').innerText = activeProfile.username;
@@ -5061,6 +5710,9 @@ function spawnThemeParticles() {
             let today = new Date().toLocaleDateString('tr-TR');
             if(activeProfile.lastDailyRewardDate !== today) { document.getElementById('dailyRewardBanner').classList.remove('hidden'); } 
             else { document.getElementById('dailyRewardBanner').classList.add('hidden'); }
+
+            renderDailySongPanel();
+            checkAdminInbox();
 
             let el = document.getElementById('dashboardScreen');
             el.classList.remove('hidden'); el.classList.remove('screen-transition'); void el.offsetWidth; el.classList.add('screen-transition');
@@ -5268,13 +5920,14 @@ function applyFrame(frameClass) {
             list.innerHTML = "";
             BADGES.forEach(b => {
                 const isUnlocked = activeProfile.achievements.includes(b.id);
+                const showSecret = b.secret && !isUnlocked;
                 const div = document.createElement('div');
                 div.className = `flex items-center gap-4 p-4 rounded-xl border transition-all backdrop-blur-sm ${isUnlocked ? 'bg-black/60 border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-black/50 border-white/20 opacity-60 grayscale'}`;
                 div.innerHTML = `
                     <div class="text-4xl drop-shadow-md">${isUnlocked ? b.icon : '🔒'}</div>
                     <div>
-                        <h4 class="font-bold text-base drop-shadow-sm ${isUnlocked ? 'text-emerald-400' : 'text-gray-300'}">${b.title}</h4>
-                        <p class="text-[11px] text-gray-200 leading-tight mt-1 font-semibold">${b.desc}</p>
+                        <h4 class="font-bold text-base drop-shadow-sm ${isUnlocked ? 'text-emerald-400' : 'text-gray-300'}">${showSecret ? b.lockedTitle : b.title}</h4>
+                        <p class="text-[11px] text-gray-200 leading-tight mt-1 font-semibold">${showSecret ? b.lockedDesc : b.desc}</p>
                     </div>
                 `;
                 list.appendChild(div);
@@ -5311,6 +5964,7 @@ function applyFrame(frameClass) {
                     if(badge.id === "demetolog" && activeProfile.titles.includes("Demetolog")) met = true;
                     if(badge.id === "title_collector" && activeProfile.titles.length >= 4) met = true;
                     if(badge.id === "night_owl" && activeProfile.themes.includes("gece")) met = true;
+                    if(badge.id === "pas_efsanesi" && st.pasEasterEggTriggered) met = true;
 
                     if(met) {
                         activeProfile.achievements.push(badge.id);
@@ -5451,7 +6105,18 @@ const panel = document.getElementById('mainPanel');
             resetIdleTimer();
             questionStartTime = Date.now();
 
-            if(currentMode !== 'timeAttack') document.getElementById('qCount').innerText = questionCount;
+            if(currentMode !== 'timeAttack') {
+                document.getElementById('qCount').innerText = questionCount;
+                const gp = document.getElementById('gameProgress');
+                const existingBadge = gp.querySelector('.test-mode-badge');
+                if (existingBadge) existingBadge.remove();
+                if (testModeActive) {
+                    const badge = document.createElement('span');
+                    badge.className = 'test-mode-badge text-amber-400 text-xs ml-2 font-black animate-pulse';
+                    badge.innerText = '🛠️ TEST MODU';
+                    gp.appendChild(badge);
+                }
+            }
 
             const grid = document.getElementById('optionsGrid');
             grid.innerHTML = "";
@@ -5459,19 +6124,36 @@ const panel = document.getElementById('mainPanel');
             let pool = songsDatabase;
             if(currentMode === 'queens') { pool = songsDatabase.filter(s => queens.includes(s.artist)); }
 
+            // Admin panelinden bu mod için "Hariç Tut" edilen sanatçı/şarkılar varsa çıkar.
+            if (window.blacklistCache && window.blacklistCache[currentMode]) {
+                const modBlacklist = window.blacklistCache[currentMode];
+                pool = pool.filter(s => {
+                    const artistKey = String(s.artist).replace(/[.#$\[\]\/]/g, '_').trim();
+                    const songKey = String(s.title + '|' + s.artist).replace(/[.#$\[\]\/]/g, '_').trim();
+                    return !modBlacklist[artistKey] && !modBlacklist[songKey];
+                });
+            }
+
             // FİLTRE 1: Yabancı Misafirler 'Kim Söylüyor' ve 'Hangi Yıl' modlarında kesinlikle ÇIKAMAZ!
             if(currentMode === 'artist' || currentMode === 'guessYear') {
                 pool = pool.filter(s => s.isForeignGuest !== true);
             }
 
-            let unplayedPool = pool.filter(s => !playedQuestions.includes(s.title + "|" + s.artist));
-            if(unplayedPool.length === 0) {
-                unplayedPool = pool;
-                playedQuestions = [];
+            let correctData;
+            if (testModeActive) {
+                // 🛠️ TEST MODU: rastgele değil, veritabanının SONUNDAN BAŞA doğru sırayla gösterir.
+                const reversedPool = [...pool].reverse();
+                correctData = reversedPool.length > 0 ? reversedPool[testModeIndex % reversedPool.length] : songsDatabase[0];
+                testModeIndex++;
+            } else {
+                let unplayedPool = pool.filter(s => !playedQuestions.includes(s.title + "|" + s.artist));
+                if(unplayedPool.length === 0) {
+                    unplayedPool = pool;
+                    playedQuestions = [];
+                }
+                correctData = unplayedPool[Math.floor(Math.random() * unplayedPool.length)];
+                playedQuestions.push(correctData.title + "|" + correctData.artist);
             }
-            
-            let correctData = unplayedPool[Math.floor(Math.random() * unplayedPool.length)];
-            playedQuestions.push(correctData.title + "|" + correctData.artist); 
             window.currentCorrectSongObj = correctData; 
 
             // FİLTRE 2: Çeldirici (Yanlış Şık) Havuzunu Dil ve CoverId'ye göre ayarla
@@ -5705,17 +6387,26 @@ const panel = document.getElementById('mainPanel');
             }
         }
 
-function useJoker50() { 
+function trackModeJokerUsage() {
+            if(!activeProfile.stats.modeJokerUsage) activeProfile.stats.modeJokerUsage = {};
+            activeProfile.stats.modeJokerUsage[currentMode] = (activeProfile.stats.modeJokerUsage[currentMode] || 0) + 1;
+        }
+
+        function useJoker50() { 
             if(sessionJokers.fifty <= 0) return; sessionJokers.fifty--; renderJokers();
-            activeProfile.stats.joker50++; recordStat('fifty'); const btns = Array.from(document.querySelectorAll('.option-btn')); let wrongBtns = btns.filter(b => b.dataset.isCorrect === "false"); wrongBtns.sort(() => Math.random() - 0.5); wrongBtns[0].style.visibility = 'hidden'; wrongBtns[1].style.visibility = 'hidden'; saveAppData(); resetIdleTimer(); 
+            activeProfile.stats.joker50++; recordStat('fifty'); trackModeJokerUsage(); const btns = Array.from(document.querySelectorAll('.option-btn')); let wrongBtns = btns.filter(b => b.dataset.isCorrect === "false"); wrongBtns.sort(() => Math.random() - 0.5); wrongBtns[0].style.visibility = 'hidden'; wrongBtns[1].style.visibility = 'hidden'; saveAppData(); resetIdleTimer(); 
         }
         function useJokerPass() { 
             if(sessionJokers.pass <= 0) return; sessionJokers.pass--; renderJokers();
-            activeProfile.stats.jokerPass++; recordStat('pass'); comboCount = 0; saveAppData(); loadQuestion(); 
+            const _pasSong = window.currentCorrectSongObj;
+            if (_pasSong && _pasSong.title === 'Pas' && _pasSong.artist === 'Soner Sarıkabadayı') {
+                activeProfile.stats.pasEasterEggTriggered = true;
+            }
+            activeProfile.stats.jokerPass++; recordStat('pass'); trackModeJokerUsage(); comboCount = 0; saveAppData(); loadQuestion(); 
         }
         function useJokerAudience() { 
             if(sessionJokers.audience <= 0) return; sessionJokers.audience--; renderJokers();
-            activeProfile.stats.jokerAudience++; recordStat('audience'); saveAppData(); 
+            activeProfile.stats.jokerAudience++; recordStat('audience'); trackModeJokerUsage(); saveAppData(); 
             const btns = document.querySelectorAll('.option-btn'); let correctPct = Math.floor(Math.random() * 25) + 45; let remain = 100 - correctPct; let wrongIndex = 0; 
             btns.forEach(btn => { 
                 if(btn.style.visibility === 'hidden') return; 
@@ -5727,11 +6418,11 @@ function useJoker50() {
         }
         function useJokerChance() { 
             if(sessionJokers.chance <= 0) return; sessionJokers.chance--; renderJokers();
-            hasDoubleChance = true; activeProfile.stats.jokerChance = (activeProfile.stats.jokerChance || 0) + 1; saveAppData(); showToast("Aktif!", "Yanlış yaparsan bir hakkın daha var!", "🍀"); resetIdleTimer(); 
+            hasDoubleChance = true; activeProfile.stats.jokerChance = (activeProfile.stats.jokerChance || 0) + 1; trackModeJokerUsage(); saveAppData(); showToast("Aktif!", "Yanlış yaparsan bir hakkın daha var!", "🍀"); resetIdleTimer(); 
         }
         function useJokerHint() { 
             if(sessionJokers.hint <= 0) return; sessionJokers.hint--; renderJokers();
-            activeProfile.stats.jokerHint++; recordStat('hint'); saveAppData(); 
+            activeProfile.stats.jokerHint++; recordStat('hint'); trackModeJokerUsage(); saveAppData(); 
             
             if(currentMode === 'artist') { 
                 let currentArtist = window.currentCorrectSongObj.artist;
@@ -5822,7 +6513,12 @@ function useJoker50() {
                         earnedPoints += bonus;
                         showComboText(`x${comboCount}`);
                     }
-                    
+
+                    if (songData && isGununSarkisi(songData)) {
+                        earnedPoints *= 2;
+                        showToast("Günün Şarkısı!", "Bu soruda 2x puan kazandın!", "🌟");
+                    }
+
                     currentScore += earnedPoints;
                     activeProfile.stats.totalScore += earnedPoints; 
                     activeProfile.stats.correctAnswers++;
@@ -5864,6 +6560,12 @@ function useJoker50() {
             if(activeProfile.stats.totalScore < activeProfile.stats.highestScore) {
                 activeProfile.stats.totalScore = activeProfile.stats.highestScore;
             }
+
+            // Admin panelinde "ortalama kaçıncı soruya kadar gelindi" istatistiği için.
+            if(!activeProfile.stats.modeProgress) activeProfile.stats.modeProgress = {};
+            if(!activeProfile.stats.modeProgress[currentMode]) activeProfile.stats.modeProgress[currentMode] = { totalQuestions: 0, sessions: 0 };
+            activeProfile.stats.modeProgress[currentMode].totalQuestions += questionCount;
+            activeProfile.stats.modeProgress[currentMode].sessions += 1;
             
             saveAppData();
             
