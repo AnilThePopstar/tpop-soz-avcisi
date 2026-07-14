@@ -423,14 +423,16 @@
 
                 <div class="lg:col-span-2 glass-panel rounded-2xl p-5">
                     <details>
-                        <summary class="cursor-pointer text-lg font-black text-white"><i class="fab fa-spotify text-emerald-400 mr-2"></i> Spotify / iTunes API Ayarları (Kapak & 30sn Önizleme İçin)</summary>
+                        <summary class="cursor-pointer text-lg font-black text-white"><i class="fab fa-spotify text-emerald-400 mr-2"></i> Spotify / iTunes / Last.fm API Ayarları (Kapak & 30sn Önizleme İçin)</summary>
                         <p class="text-xs text-gray-400 mt-3 mb-3">
                             <b class="text-amber-400">⚠️ Güvenlik notu:</b> Bu bilgiler sadece bu tarayıcıda (localStorage) saklanır, Firebase'e veya başka bir yere gönderilmez. Yine de admin.html dosyasını başkalarıyla paylaşırsan bu alanları boş bırak.
                             Spotify Developer Dashboard'dan (developer.spotify.com) ücretsiz bir uygulama oluşturup Client ID/Secret'ını buraya yapıştırabilirsin. Kapak resmi ve künye bilgisi Spotify'dan, 30sn ses önizlemesi ise (Spotify çoğu şarkıda kaldırdığı için) otomatik olarak iTunes Search API'den (ek anahtar gerekmez) çekilir.
+                            <br><br><b class="text-amber-400">Last.fm (isteğe bağlı, eksik bilgi tamamlama):</b> Spotify ve iTunes'ta bulunamayan albüm adı/kapağı/etiket bilgisi için son çare olarak denenir. last.fm/api/account/create adresinden ücretsiz bir API anahtarı alabilirsin.
                         </p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <input id="spotify_clientId" type="text" placeholder="Spotify Client ID" class="bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-400">
                             <input id="spotify_clientSecret" type="password" placeholder="Spotify Client Secret" class="bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-400">
+                            <input id="lastfm_apiKey" type="text" placeholder="Last.fm API Key (isteğe bağlı)" class="md:col-span-2 bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-400">
                         </div>
                         <div class="mt-3 flex items-center gap-3">
                             <button id="spotify_save" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-lg text-sm">Kaydet</button>
@@ -767,7 +769,7 @@
     <!-- ================= KARİYER BAŞLANGICI DÜZENLE MODALI ================= -->
     <div id="dateEditModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
         <div class="glass-panel rounded-2xl w-full max-w-md p-6 border-2 border-sky-500/40 shadow-[0_0_60px_rgba(56,189,248,0.25)]">
-            <h3 class="text-lg font-black text-white mb-1"><i class="fas fa-calendar-edit text-sky-400 mr-2"></i> Kariyer Başlangıcını Düzenle</h3>
+            <h3 class="text-lg font-black text-white mb-1"><i class="fas fa-calendar-alt text-sky-400 mr-2"></i> Kariyer Başlangıcını Düzenle</h3>
             <p id="de_playerLabel" class="text-xs text-gray-400 mb-4"></p>
             <label class="text-xs font-bold text-gray-400 block mb-1">Yeni Katılım Tarihi</label>
             <input id="de_date" type="date" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white mb-4 focus:outline-none focus:border-sky-400">
@@ -852,7 +854,7 @@
     setupSubtabs('.subnav-gonderilenler', '.subtabpage-gonderilenler');
 
     // ---------- Yardımcılar ----------
-    const jokerLabels = { fifty: '%50', pass: 'Pas', hint: 'İpucu', audience: 'Seyirci' };
+    const jokerLabels = { fifty: '%50', pass: 'Pas', hint: 'İpucu', audience: 'Seyirci', chance: 'Şanslı El', listen: 'Sesi Dinle' };
     const fmt = (n) => (n || 0).toLocaleString('tr-TR');
     const timeAgo = (ts) => {
         if (!ts) return 'Bilinmiyor';
@@ -901,7 +903,7 @@
     function renderKpis(users) {
         const totalPlayers = users.length;
         let totalGames = 0, totalCorrect = 0, totalWrong = 0;
-        const jokerTotals = { fifty: 0, pass: 0, hint: 0, audience: 0, chance: 0 };
+        const jokerTotals = { fifty: 0, pass: 0, hint: 0, audience: 0, chance: 0, listen: 0 };
 
         users.forEach(u => {
             const st = u.stats || {};
@@ -913,6 +915,7 @@
             jokerTotals.hint += st.jokerHint || 0;
             jokerTotals.audience += st.jokerAudience || 0;
             jokerTotals.chance += st.jokerChance || 0;
+            jokerTotals.listen += st.jokerListen || 0;
         });
 
         const successRate = (totalCorrect + totalWrong) > 0 ? Math.round((totalCorrect / (totalCorrect + totalWrong)) * 100) : 0;
@@ -939,7 +942,7 @@
 
     // ---------- Joker dağılımı ----------
     function renderJokerDistribution(users) {
-        const jokerTotals = { fifty: 0, pass: 0, hint: 0, audience: 0, chance: 0 };
+        const jokerTotals = { fifty: 0, pass: 0, hint: 0, audience: 0, chance: 0, listen: 0 };
         users.forEach(u => {
             const st = u.stats || {};
             jokerTotals.fifty += st.joker50 || 0;
@@ -947,9 +950,10 @@
             jokerTotals.hint += st.jokerHint || 0;
             jokerTotals.audience += st.jokerAudience || 0;
             jokerTotals.chance += st.jokerChance || 0;
+            jokerTotals.listen += st.jokerListen || 0;
         });
-        const labels = { fifty: '%50 Joker', pass: 'Pas', hint: 'İpucu', audience: 'Seyirci', chance: 'Şanslı El' };
-        const colors = { fifty: 'bg-purple-500', pass: 'bg-sky-500', hint: 'bg-amber-500', audience: 'bg-emerald-500', chance: 'bg-pink-500' };
+        const labels = { fifty: '%50 Joker', pass: 'Pas', hint: 'İpucu', audience: 'Seyirci', chance: 'Şanslı El', listen: 'Sesi Dinle' };
+        const colors = { fifty: 'bg-purple-500', pass: 'bg-sky-500', hint: 'bg-amber-500', audience: 'bg-emerald-500', chance: 'bg-pink-500', listen: 'bg-teal-500' };
         const total = Object.values(jokerTotals).reduce((a, b) => a + b, 0);
         const container = document.getElementById('jokerDistribution');
 
@@ -1059,7 +1063,7 @@
                         <button data-user="${u.username}" class="pd-btn text-purple-400 hover:text-purple-300 text-xs font-bold border border-purple-500/40 bg-purple-500/10 px-2 py-1.5 rounded-lg" title="Detay"><i class="fas fa-id-card"></i></button>
                         <button data-user="${u.username}" class="rw-btn text-emerald-400 hover:text-emerald-300 text-xs font-bold border border-emerald-500/40 bg-emerald-500/10 px-2 py-1.5 rounded-lg" title="Ödül Gönder"><i class="fas fa-gift"></i></button>
                         <button data-user="${u.username}" class="wn-btn text-red-400 hover:text-red-300 text-xs font-bold border border-red-500/40 bg-red-500/10 px-2 py-1.5 rounded-lg" title="Uyarı Gönder"><i class="fas fa-exclamation-triangle"></i></button>
-                        <button data-user="${u.username}" class="de-btn text-sky-400 hover:text-sky-300 text-xs font-bold border border-sky-500/40 bg-sky-500/10 px-2 py-1.5 rounded-lg" title="Katılım Tarihini Düzenle"><i class="fas fa-calendar-edit"></i></button>
+                        <button data-user="${u.username}" class="de-btn text-sky-400 hover:text-sky-300 text-xs font-bold border border-sky-500/40 bg-sky-500/10 px-2 py-1.5 rounded-lg" title="Katılım Tarihini Düzenle"><i class="fas fa-calendar-alt"></i></button>
                     </td>
                 </tr>`;
         }).join('');
@@ -1655,6 +1659,17 @@
         try {
             statusEl.className = 'text-sm font-bold text-sky-300';
             statusEl.innerText = 'Kaydediliyor...';
+
+            // İsim/sanatçı değiştiyse ("Hayalet Şarkı" sorunu): oyunun kod içine gömülü eski
+            // isimli kaydı temizleyebilmesi için Firebase'e "emekliye ayrıldı" kaydı bırakıyoruz.
+            if (_esCurrentSong && (_esCurrentSong.title !== title || _esCurrentSong.artist !== artist)) {
+                const eskiKey = sanitizeKey(_esCurrentSong.title + '|' + _esCurrentSong.artist);
+                await set(ref(db, 'retiredSongs/' + eskiKey), {
+                    oldTitle: _esCurrentSong.title, oldArtist: _esCurrentSong.artist,
+                    newTitle: title, newArtist: artist, zaman: Date.now()
+                });
+            }
+
             await update(ref(db, 'songs/' + editingSongKey), {
                 title, artist,
                 year: year ? Number(year) : null,
@@ -1676,6 +1691,65 @@
             statusEl.innerText = `❌ Hata: ${err.code || err.message}`;
         }
     });
+
+    // ---------- Evrensel Ses Önizleme Oynatıcısı (Play/Pause) ----------
+    // ÖNEMLİ: Bu değişkenler MODÜL seviyesinde (fonksiyon içinde değil) tutulur, yoksa tablo
+    // her yenilendiğinde (arama/sıralama) durum sıfırlanıp ikon hiç güncellenmiyordu.
+    let _adminAudio = null;
+    let _adminAudioKey = null;
+    let _adminAudioStopTimer = null;
+
+    function tumCalIkonlariniSifirla() {
+        document.querySelectorAll('.listen-test-icon').forEach(ic => {
+            ic.classList.remove('fa-pause');
+            ic.classList.add('fa-play');
+        });
+    }
+
+    function adminSesiDurdur() {
+        if (_adminAudioStopTimer) { clearTimeout(_adminAudioStopTimer); _adminAudioStopTimer = null; }
+        if (_adminAudio) { _adminAudio.pause(); _adminAudio = null; }
+        _adminAudioKey = null;
+        tumCalIkonlariniSifirla();
+    }
+
+    function wireListenButtons() {
+        document.querySelectorAll('.listen-test-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.dataset.key;
+                const icon = btn.querySelector('.listen-test-icon');
+
+                // Aynı şarkıya tekrar tıklandıysa: çalıyorsa duraklat, duraklamışsa devam ettir.
+                if (_adminAudioKey === key && _adminAudio) {
+                    if (_adminAudio.paused) {
+                        _adminAudio.play().catch(() => {});
+                        icon.classList.remove('fa-play'); icon.classList.add('fa-pause');
+                    } else {
+                        _adminAudio.pause();
+                        icon.classList.remove('fa-pause'); icon.classList.add('fa-play');
+                    }
+                    return;
+                }
+
+                // Farklı bir şarkı: öncekini durdur, ikonları sıfırla, yeniyi başlat.
+                adminSesiDurdur();
+                const entry = allSongsCache.find(([k]) => k === key);
+                if (!entry) return;
+                const s = entry[1];
+                const url = s.customPreviewAudio || s.spotifyPreviewUrl || s.itunesPreviewUrl;
+                if (!url) return;
+
+                _adminAudio = new Audio(url);
+                _adminAudioKey = key;
+                _adminAudio.volume = 0.6;
+                _adminAudio.play().catch(err => console.warn('Önizleme çalınamadı:', err));
+                icon.classList.remove('fa-play'); icon.classList.add('fa-pause');
+
+                _adminAudio.addEventListener('ended', adminSesiDurdur);
+                _adminAudioStopTimer = setTimeout(adminSesiDurdur, 30000);
+            });
+        });
+    }
 
     let sfShowAll = false;
     function renderSongTable(list) {
@@ -1700,11 +1774,14 @@
                 <td class="py-4">${s.year || '—'}</td>
                 <td class="py-4">${(s.lyrics || []).length}</td>
                 <td class="py-4 text-right whitespace-nowrap">
+                    ${s.customPreviewAudio || s.spotifyPreviewUrl || s.itunesPreviewUrl ? `<button data-key="${key}" class="listen-test-btn text-teal-400 hover:text-teal-300 text-xs font-bold border border-teal-500/40 bg-teal-500/10 px-3 py-1.5 rounded-lg mr-1" title="Önizlemeyi Çal/Duraklat"><i class="fas fa-play listen-test-icon"></i></button>` : ''}
                     <button data-key="${key}" class="spotify-fetch-btn text-emerald-400 hover:text-emerald-300 text-xs font-bold border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 rounded-lg mr-1" title="Spotify + iTunes'tan Çek"><i class="fab fa-spotify"></i></button>
                     <button data-key="${key}" class="edit-song-btn text-sky-400 hover:text-sky-300 text-xs font-bold border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 rounded-lg mr-1"><i class="fas fa-pen mr-1"></i> Düzenle</button>
                     <button data-key="${key}" class="delete-song-btn text-red-400 hover:text-red-300 text-xs font-bold border border-red-500/40 bg-red-500/10 px-3 py-1.5 rounded-lg"><i class="fas fa-trash mr-1"></i> Sil</button>
                 </td>
             </tr>`).join('');
+
+        wireListenButtons();
 
         tbody.querySelectorAll('.spotify-fetch-btn').forEach(btn => {
             btn.addEventListener('click', () => spotifydanCek(btn.dataset.key, btn));
@@ -2119,10 +2196,12 @@
     // ---------- Spotify API (Client Credentials) ----------
     document.getElementById('spotify_clientId').value = localStorage.getItem('kp_spotify_id') || '';
     document.getElementById('spotify_clientSecret').value = localStorage.getItem('kp_spotify_secret') || '';
+    document.getElementById('lastfm_apiKey').value = localStorage.getItem('kp_lastfm_key') || '';
 
     document.getElementById('spotify_save').addEventListener('click', () => {
         localStorage.setItem('kp_spotify_id', document.getElementById('spotify_clientId').value.trim());
         localStorage.setItem('kp_spotify_secret', document.getElementById('spotify_clientSecret').value.trim());
+        localStorage.setItem('kp_lastfm_key', document.getElementById('lastfm_apiKey').value.trim());
         const statusEl = document.getElementById('spotify_status');
         statusEl.className = 'text-sm font-bold text-emerald-400';
         statusEl.innerText = '✅ Kaydedildi (bu tarayıcıda saklanıyor).';
@@ -2239,6 +2318,31 @@
                     if (!updatePayload.spotifyAlbumArt) updatePayload.spotifyAlbumArt = updatePayload.itunesAlbumArt;
                 } else {
                     sonuclar.push('⚪ iTunes: önizleme bulunamadı');
+                }
+            }
+
+            // ---- 3) LAST.FM: Spotify+iTunes'un tamamlayamadığı eksik metadata için son çare ----
+            const lastfmKey = localStorage.getItem('kp_lastfm_key');
+            if (lastfmKey && (!updatePayload.spotifyAlbumName || !updatePayload.spotifyAlbumArt)) {
+                try {
+                    const lfResp = await fetch(`https://ws.audioscrobbler.com/2.0/?method=track.getInfo&api_key=${lastfmKey}&artist=${encodeURIComponent(song.artist)}&track=${encodeURIComponent(song.title)}&format=json`);
+                    const lfData = await lfResp.json();
+                    const track = lfData.track;
+                    if (track) {
+                        if (!updatePayload.spotifyAlbumName && track.album?.title) updatePayload.spotifyAlbumName = track.album.title;
+                        if (!updatePayload.spotifyAlbumArt && track.album?.image) {
+                            const img = track.album.image.find(i => i.size === 'extralarge' || i.size === 'large');
+                            if (img && img['#text']) updatePayload.spotifyAlbumArt = img['#text'];
+                        }
+                        if (track.toptags?.tag?.length) {
+                            updatePayload.lastfmTags = track.toptags.tag.slice(0, 5).map(t => t.name).join(', ');
+                        }
+                        sonuclar.push('✅ Last.fm: eksik bilgiler tamamlandı');
+                    } else {
+                        sonuclar.push('⚪ Last.fm: bulunamadı');
+                    }
+                } catch (err) {
+                    sonuclar.push('❌ Last.fm: hata (' + err.message + ')');
                 }
             }
 

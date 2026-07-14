@@ -475,7 +475,7 @@
                 <div class="bg-black/40 px-4 py-2 rounded-lg text-sm font-bold text-white drop-shadow-md">+200 💰 <i class="fas fa-hand-pointer ml-1"></i></div>
             </div>
 
-            <div id="modeButtonsOuterGrid" class="grid grid-cols-1 gap-4 mb-6 items-start">
+            <div id="modeButtonsOuterGrid" class="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-4 mb-6 items-start">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <button onclick="startMode('classic')" class="mode-btn mode-grad-classic text-white font-bold py-4 rounded-xl shadow-md flex flex-col items-center justify-center">
                         <i class="fas fa-gamepad text-2xl mb-1 drop-shadow-md"></i> Klasik Mod <span class="text-xs font-normal opacity-90 drop-shadow-sm">(20 Soru)</span>
@@ -513,21 +513,32 @@
                     </button>
                 </div>
 
-                <div id="dailySongPanel" class="hidden daily-song-panel p-3 rounded-2xl relative overflow-hidden">
+                <div id="dailySongPanel" class="daily-song-panel p-3 rounded-2xl relative overflow-hidden">
                     <div class="flex justify-between items-center mb-3">
-                        <h3 id="dailySongHeading" class="text-xs font-black uppercase tracking-widest text-pink-200"><i class="fas fa-star text-amber-300 mr-1"></i> —</h3>
+                        <h3 id="dailySongHeading" class="text-xs font-black uppercase tracking-widest text-pink-200"><i class="fas fa-star text-amber-300 mr-1"></i> Günün Şarkısı</h3>
                     </div>
-                    <div class="text-center">
+                    <div id="dailySongContent" class="text-center">
                         <div id="dailySongEmoji" class="text-4xl mb-1 drop-shadow-lg">🎵</div>
                         <div id="dailySongTitle" class="text-base font-black text-white drop-shadow-md">—</div>
                         <div id="dailySongArtist" class="text-xs text-pink-200 font-semibold mb-2">—</div>
                         <div id="dailySongAgeText" class="text-[11px] text-amber-200 font-bold bg-black/25 rounded-lg px-2 py-1.5 leading-snug"></div>
-                        <div class="flex items-center justify-center gap-3 mt-3">
+                        <div class="flex items-center justify-center gap-2 mt-3">
                             <button onclick="dailySongNav(-1)" class="daily-song-arrow w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0"><i class="fas fa-chevron-left text-xs"></i></button>
+                            <button id="dailySongPlayBtn" onclick="dailySongOynat()" class="hidden w-9 h-9 rounded-full bg-emerald-500/80 hover:bg-emerald-400 flex items-center justify-center text-white flex-shrink-0 shadow-lg" title="Önizlemeyi Dinle"><i class="fas fa-play text-xs"></i></button>
                             <div id="dailySongDots" class="flex justify-center gap-1.5"></div>
                             <button onclick="dailySongNav(1)" class="daily-song-arrow w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0"><i class="fas fa-chevron-right text-xs"></i></button>
                         </div>
                     </div>
+                    <div id="dailySongEmptyState" class="hidden text-center py-2">
+                        <div class="text-3xl mb-2">😔</div>
+                        <p class="text-xs text-gray-300 font-semibold leading-snug">Elimizde geçmişte bugün çıkan hiç şarkı yok.</p>
+                    </div>
+                </div>
+
+                <div id="randomLyricBox" class="daily-song-panel p-3 rounded-2xl relative overflow-hidden mt-3">
+                    <h3 class="text-xs font-black uppercase tracking-widest text-sky-200 mb-2"><i class="fas fa-feather-alt text-sky-300 mr-1"></i> Rastgele Söz</h3>
+                    <p id="randomLyricText" class="text-xs text-gray-200 italic leading-snug mb-2">—</p>
+                    <p id="randomLyricSource" class="text-[10px] text-sky-300 font-bold text-right">—</p>
                 </div>
             </div>
 
@@ -685,8 +696,9 @@
                 <div class="cursor-pointer select-none hover:text-amber-400 transition-colors drop-shadow-md" onclick="triggerScoreEgg()" title="Sırrı Çöz">Puan: <span id="gameScore" class="text-white font-black text-xl bg-black/50 px-3 py-1 rounded-lg border border-white/10 shadow-inner">0</span></div>
             </div>
 
-            <div id="timerContainer" class="w-full h-4 bg-black/60 rounded-full mb-6 overflow-hidden hidden border border-white/20 shadow-inner">
+            <div id="timerContainer" class="w-full h-4 bg-black/60 rounded-full mb-6 overflow-hidden hidden border border-white/20 shadow-inner relative">
                 <div id="timerBar" class="h-full bg-[var(--accent)] w-full transition-all duration-1000 ease-linear shadow-[0_0_10px_var(--accent)]"></div>
+                <span id="sbTimerDisplay" class="hidden absolute inset-0 flex items-center justify-center text-[10px] font-black text-white drop-shadow-md"></span>
             </div>
 
             <div class="flex flex-wrap justify-center gap-2 mb-6">
@@ -4719,6 +4731,7 @@ function sarkiVeritabaniniGenislet() {
             // hızlı giriş yapan geri dönen oyuncularda) henüz songsDatabase güncellenmemiş
             // olabilir. Merge bittiğinde, dashboard açıksa paneli tekrar çiziyoruz.
             if (typeof window.renderDailySongPanel === 'function') window.renderDailySongPanel();
+            if (typeof window.renderRandomLyricBox === 'function') window.renderRandomLyricBox();
         } catch (err) {
             console.error("❌ Ek şarkılar çekilirken hata:", err);
         }
@@ -4988,6 +5001,31 @@ const artistHints = {
         let isAudioInit = false;
         // Yeni eklenen satır:
         let sessionJokers = { fifty: 1, chance: 1, pass: 1, audience: 1, hint: 1, listen: 1 };
+
+        // ================= GELİŞTİRİCİ (CHEAT) KONSOLU =================
+        // Konsoldan: giveJoker('ses', 99) veya giveJoker('elli', 5) gibi kullanılır.
+        const CHEAT_JOKER_ALIASES = {
+            elli: 'fifty', '50': 'fifty', fifty: 'fifty',
+            pas: 'pass', pass: 'pass',
+            seyirci: 'audience', audience: 'audience',
+            ipucu: 'hint', hint: 'hint',
+            sans: 'chance', şans: 'chance', chance: 'chance',
+            ses: 'listen', sesidinle: 'listen', listen: 'listen'
+        };
+        window.giveJoker = function(type, count) {
+            const key = CHEAT_JOKER_ALIASES[String(type).toLowerCase()];
+            if (!key) {
+                console.warn(`❌ Bilinmeyen joker tipi: "${type}". Geçerli tipler: elli, pas, seyirci, ipucu, sans, ses`);
+                return;
+            }
+            if (typeof sessionJokers[key] === 'undefined') {
+                console.warn('⚠️ Şu an aktif bir oyun oturumu yok, joker eklenemedi.');
+                return;
+            }
+            sessionJokers[key] = (sessionJokers[key] || 0) + (Number(count) || 1);
+            if (typeof renderJokers === 'function') renderJokers();
+            console.log(`✅ ${CHEAT_JOKER_ALIASES[type] || key} jokerine +${count || 1} eklendi. Yeni miktar: ${sessionJokers[key]}`);
+        };
 
         const BADGES = [
             { id: "first_blood", title: "Sahneye İlk Adım", desc: "İlk doğru cevabını verdin.", icon: "🎤", reward: 100 },
@@ -5484,6 +5522,7 @@ function spawnThemeParticles() {
         }
 
         function logout() {
+            stopPreviewAudio();
             resetTestModeState(false);
             activeProfile = null;
             localStorage.removeItem('tpop_lastUser');
@@ -5816,15 +5855,18 @@ function spawnThemeParticles() {
 
         let _dailySongIndex = 0;
         function renderDailySongPanel() {
-            const panel = document.getElementById('dailySongPanel');
-            const outerGrid = document.getElementById('modeButtonsOuterGrid');
             const list = getGununSarkilari();
+            const content = document.getElementById('dailySongContent');
+            const emptyState = document.getElementById('dailySongEmptyState');
+            const playBtn = document.getElementById('dailySongPlayBtn');
+
             if (list.length === 0) {
-                panel.classList.add('hidden');
-                if (outerGrid) outerGrid.classList.remove('md:grid-cols-[1fr_220px]');
+                content.classList.add('hidden');
+                emptyState.classList.remove('hidden');
                 return;
             }
-            if (outerGrid) outerGrid.classList.add('md:grid-cols-[1fr_220px]');
+            content.classList.remove('hidden');
+            emptyState.classList.add('hidden');
 
             if (_dailySongIndex >= list.length) _dailySongIndex = 0;
             const song = list[_dailySongIndex];
@@ -5832,26 +5874,55 @@ function spawnThemeParticles() {
             document.getElementById('dailySongTitle').innerText = song.title;
             document.getElementById('dailySongArtist').innerText = song.artist;
 
-            const heading = document.getElementById('dailySongHeading');
             const ageText = document.getElementById('dailySongAgeText');
             const releaseYear = song.releaseDate && song.releaseDate.year ? song.releaseDate.year : null;
 
             if (releaseYear) {
                 const currentYear = new Date().getFullYear();
                 const age = currentYear - releaseYear;
-                heading.innerHTML = `<i class="fas fa-star text-amber-300 mr-1"></i> Günün Şarkısı`;
                 ageText.innerText = age > 0
                     ? `Bugün ${age} yaşına girdi! (Orijinal Çıkış: ${releaseYear}) · 2x Puan 🌟`
                     : `Bugün çıktı! · 2x Puan 🌟`;
             } else {
-                heading.innerHTML = `<i class="fas fa-star text-amber-300 mr-1"></i> Günün Şarkısı`;
                 ageText.innerText = `2x Puan Kazandırıyor 🌟`;
             }
 
             const dots = document.getElementById('dailySongDots');
             dots.innerHTML = list.map((_, i) => `<span class="w-2 h-2 rounded-full ${i === _dailySongIndex ? 'bg-amber-300' : 'bg-white/25'}"></span>`).join('');
 
-            panel.classList.remove('hidden');
+            const hasPreview = song.customPreviewAudio || song.spotifyPreviewUrl || song.itunesPreviewUrl;
+            playBtn.classList.toggle('hidden', !hasPreview);
+        }
+
+        let _dailySongPreviewAudio = null;
+        function dailySongOynat() {
+            const list = getGununSarkilari();
+            const song = list[_dailySongIndex];
+            if (!song) return;
+            const url = song.customPreviewAudio || song.spotifyPreviewUrl || song.itunesPreviewUrl;
+            if (!url) return;
+            try {
+                stopPreviewAudio();
+                if (_dailySongPreviewAudio) { _dailySongPreviewAudio.pause(); _dailySongPreviewAudio = null; }
+                _dailySongPreviewAudio = new Audio(url);
+                _dailySongPreviewAudio.volume = 0.7;
+                _dailySongPreviewAudio.play().catch(() => {});
+                setTimeout(() => { if (_dailySongPreviewAudio) { _dailySongPreviewAudio.pause(); _dailySongPreviewAudio = null; } }, 30000);
+            } catch (e) { console.warn('Günün Şarkısı önizlemesi çalınamadı:', e); }
+        }
+
+        // Ana menüye her dönüldüğünde veritabanından rastgele bir söz gösterir.
+        function renderRandomLyricBox() {
+            const textEl = document.getElementById('randomLyricText');
+            const sourceEl = document.getElementById('randomLyricSource');
+            const adaylar = songsDatabase.filter(s => Array.isArray(s.lyrics) && s.lyrics.some(l => l && l.trim() !== '-' && l.trim() !== ''));
+            if (adaylar.length === 0) { textEl.innerText = '—'; sourceEl.innerText = '—'; return; }
+
+            const song = adaylar[Math.floor(Math.random() * adaylar.length)];
+            const kitalar = song.lyrics.filter(l => l && l.trim() !== '-' && l.trim() !== '');
+            const kita = kitalar[Math.floor(Math.random() * kitalar.length)];
+            textEl.innerHTML = `"${kita}"`;
+            sourceEl.innerText = `— ${song.title}, ${song.artist}`;
         }
 
         function dailySongNav(dir) {
@@ -5915,6 +5986,7 @@ function spawnThemeParticles() {
         }
 
         function showDashboard() {
+            stopPreviewAudio();
             resetTestModeState(false);
             hideAllScreens();
             document.getElementById('dashName').innerText = activeProfile.username;
@@ -5935,6 +6007,7 @@ function spawnThemeParticles() {
             else { document.getElementById('dailyRewardBanner').classList.add('hidden'); }
 
             renderDailySongPanel();
+            renderRandomLyricBox();
             checkAdminInbox();
 
             let el = document.getElementById('dashboardScreen');
@@ -6264,19 +6337,25 @@ function applyFrame(frameClass) {
             hideAllScreens();
             document.getElementById('sandboxScreen').classList.remove('hidden');
 
-            // Sanatçı listesi
+            // ÖNEMLİ: Bu ekran statik HTML olduğu için, buraya her girişte aynı butonlara
+            // TEKRAR TEKRAR event listener eklenirse (eski silinmeden), şalterler birden fazla kez
+            // tetiklenip "donmuş/tepkisiz" görünür. Çözüm: her statik butonu klonlayıp değiştirerek
+            // önceki tüm listener'ları temizliyoruz, sonra SADECE BİR KEZ yeni listener ekliyoruz.
+            function freshClone(el) { const c = el.cloneNode(true); el.parentNode.replaceChild(c, el); return c; }
+
+            // Sanatçı listesi (zaten innerHTML ile yeniden oluşturuluyor, listener sorunu yok)
             const listEl = document.getElementById('sb_artistList');
             listEl.innerHTML = sbUniqueArtists().map(a => `
                 <label class="flex items-center gap-1.5 text-gray-300 hover:text-white cursor-pointer">
                     <input type="checkbox" value="${a}" class="sb-artist-check accent-purple-500"> <span class="truncate">${a}</span>
                 </label>`).join('');
             listEl.querySelectorAll('.sb-artist-check').forEach(cb => cb.addEventListener('change', sbUpdatePoolCounter));
-            document.getElementById('sb_clearArtists').onclick = () => {
+            freshClone(document.getElementById('sb_clearArtists')).addEventListener('click', () => {
                 listEl.querySelectorAll('.sb-artist-check').forEach(cb => cb.checked = false);
                 sbUpdatePoolCounter();
-            };
+            });
 
-            // Joker toggle'ları
+            // Joker toggle'ları (zaten innerHTML ile yeniden oluşturuluyor, listener sorunu yok)
             const jokerToggleEl = document.getElementById('sb_jokerToggles');
             jokerToggleEl.innerHTML = Object.entries(SANDBOX_JOKER_LABELS).map(([key, label]) => `
                 <button data-joker="${key}" data-on="true" class="sb-joker-toggle-btn bg-emerald-600/80 text-white text-[11px] font-bold py-2 rounded-lg">${label}</button>`).join('');
@@ -6288,8 +6367,9 @@ function applyFrame(frameClass) {
                 });
             });
 
-            // Yıl preset butonları
-            document.querySelectorAll('.sb-era-btn').forEach(btn => {
+            // Yıl preset butonları (STATİK - klonlayıp temizliyoruz)
+            document.querySelectorAll('.sb-era-btn').forEach(oldBtn => {
+                const btn = freshClone(oldBtn);
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.sb-era-btn').forEach(b => b.classList.remove('bg-purple-600'));
                     document.querySelectorAll('.sb-era-btn').forEach(b => b.classList.add('bg-white/10'));
@@ -6302,8 +6382,9 @@ function applyFrame(frameClass) {
                 });
             });
 
-            // Şık sayısı butonları
-            document.querySelectorAll('.sb-choice-btn').forEach(btn => {
+            // Şık sayısı butonları (STATİK - klonlayıp temizliyoruz)
+            document.querySelectorAll('.sb-choice-btn').forEach(oldBtn => {
+                const btn = freshClone(oldBtn);
                 btn.addEventListener('click', () => {
                     document.querySelectorAll('.sb-choice-btn').forEach(b => b.classList.remove('bg-purple-600'));
                     document.querySelectorAll('.sb-choice-btn').forEach(b => b.classList.add('bg-white/10'));
@@ -6312,8 +6393,9 @@ function applyFrame(frameClass) {
                 });
             });
 
-            // Genel Aç/Kapa şalterleri
-            document.querySelectorAll('.sb-toggle').forEach(btn => {
+            // Genel Aç/Kapa şalterleri (STATİK - klonlayıp temizliyoruz)
+            document.querySelectorAll('.sb-toggle').forEach(oldBtn => {
+                const btn = freshClone(oldBtn);
                 btn.addEventListener('click', () => {
                     const on = btn.dataset.on === 'true';
                     btn.dataset.on = !on;
@@ -6322,15 +6404,18 @@ function applyFrame(frameClass) {
                 });
             });
 
-            document.getElementById('sb_resetVisuals').onclick = () => {
+            freshClone(document.getElementById('sb_resetVisuals')).addEventListener('click', () => {
                 document.getElementById('sb_toggleComboJoker').dataset.on = 'true'; document.getElementById('sb_toggleComboJoker').innerText = 'Açık'; document.getElementById('sb_toggleComboJoker').className = 'sb-toggle bg-emerald-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-full';
                 document.getElementById('sb_toggleAnimations').dataset.on = 'true'; document.getElementById('sb_toggleAnimations').innerText = 'Açık'; document.getElementById('sb_toggleAnimations').className = 'sb-toggle bg-emerald-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-full';
                 document.getElementById('sb_toggleEmojis').dataset.on = 'true'; document.getElementById('sb_toggleEmojis').innerText = 'Açık'; document.getElementById('sb_toggleEmojis').className = 'sb-toggle bg-emerald-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-full';
                 document.getElementById('sb_emojiDensity').value = 3;
-            };
+            });
 
-            ['sb_yearMin', 'sb_yearMax', 'sb_questionCount'].forEach(id => document.getElementById(id).addEventListener('input', sbUpdatePoolCounter));
-            document.getElementById('sb_toggleDuets').addEventListener('click', () => setTimeout(sbUpdatePoolCounter, 0));
+            ['sb_yearMin', 'sb_yearMax', 'sb_questionCount'].forEach(id => {
+                const fresh = freshClone(document.getElementById(id));
+                fresh.addEventListener('input', sbUpdatePoolCounter);
+            });
+            freshClone(document.getElementById('sb_toggleDuets')).addEventListener('click', () => setTimeout(sbUpdatePoolCounter, 0));
 
             sbUpdatePoolCounter();
         }
@@ -6395,6 +6480,13 @@ function applyFrame(frameClass) {
 
         function sandboxBaslatDene() {
             const cfg = sbToplaKonfigurasyon();
+
+            // 🥚 Easter Egg: Başlangıç süresi 0 olursa oyunu hiç başlatma.
+            if (cfg.timerEnabled && cfg.startTime <= 0) {
+                showZeroSecondEasterEgg();
+                return;
+            }
+
             if (cfg.pool.length === 0) {
                 showToast("Havuz Boş", "Bu filtrelerle hiç şarkı bulunamadı, kriterleri gevşet.", "⚠️");
                 return;
@@ -6406,6 +6498,19 @@ function applyFrame(frameClass) {
                 return;
             }
             sandboxGercektenBaslat();
+        }
+
+        function showZeroSecondEasterEgg() {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed; inset:0; background:#000; z-index:9999; display:flex; align-items:center; justify-content:center; text-align:center; padding:2rem;';
+            overlay.innerHTML = `<p style="color:#fff; font-size:1.6rem; font-weight:900; max-width:500px; opacity:0; transition:opacity 0.8s;">Dur, böyle deli veda mı olur? 🖤</p>`;
+            document.body.appendChild(overlay);
+            requestAnimationFrame(() => { overlay.firstElementChild.style.opacity = '1'; });
+            setTimeout(() => {
+                overlay.style.transition = 'opacity 0.6s';
+                overlay.style.opacity = '0';
+                setTimeout(() => { overlay.remove(); showDashboard(); }, 600);
+            }, 2200);
         }
 
         function sandboxGercektenBaslat() {
@@ -6466,10 +6571,13 @@ const panel = document.getElementById('mainPanel');
                 document.getElementById('gameProgress').innerHTML = `Soru: <span id="qCount" class="text-white drop-shadow-md">1</span>/${sandboxConfig.questionCount} <span class="text-purple-300 text-xs ml-2 font-bold">🎨 SANDBOX</span>`;
                 if (sandboxConfig.timerEnabled) {
                     document.getElementById('timerContainer').classList.remove('hidden');
+                    document.getElementById('sbTimerDisplay').classList.remove('hidden');
+                    document.getElementById('sbTimerDisplay').innerText = sandboxConfig.startTime + 's';
                     timeLeft = sandboxConfig.startTime;
                     startTimer();
                 } else {
                     document.getElementById('timerContainer').classList.add('hidden');
+                    document.getElementById('sbTimerDisplay').classList.add('hidden');
                 }
                 document.getElementById('livesContainer').classList.remove('hidden');
                 updateLivesDisplay();
@@ -6481,6 +6589,7 @@ const panel = document.getElementById('mainPanel');
                 maxQuestions = 20;
                 document.getElementById('gameProgress').innerHTML = `Soru: <span id="qCount" class="text-white drop-shadow-md">1</span>/20`;
                 document.getElementById('timerContainer').classList.add('hidden');
+                document.getElementById('sbTimerDisplay').classList.add('hidden');
                 document.getElementById('livesContainer').classList.remove('hidden');
                 updateLivesDisplay();
             }
@@ -6546,7 +6655,14 @@ const panel = document.getElementById('mainPanel');
             
             timerInterval = setInterval(() => {
                 timeLeft--;
-                document.getElementById('qCount').innerText = timeLeft;
+                // ÖNEMLİ: timeAttack modunda #qCount zaten "süre" göstergesidir (soru sayısı yok).
+                // Ama Sandbox'ta HEM soru numarası HEM süre aynı anda gösterilmesi gerektiği için
+                // #qCount'u ezmek yerine ayrı bir #sbTimerDisplay kullanıyoruz.
+                if (currentMode === 'sandbox') {
+                    document.getElementById('sbTimerDisplay').innerText = timeLeft + 's';
+                } else {
+                    document.getElementById('qCount').innerText = timeLeft;
+                }
                 let pct = (timeLeft / 30) * 100;
                 bar.style.width = Math.min(pct, 100) + '%';
                 bar.style.backgroundColor = timeLeft <= 5 ? 'var(--wrong)' : 'var(--accent)';
@@ -6560,6 +6676,7 @@ const panel = document.getElementById('mainPanel');
         document.getElementById('quitGameBtn').onclick = () => { document.getElementById('pauseModal').classList.add('hidden'); endGame(); };
 
         function loadQuestion() {
+            stopPreviewAudio();
             isProcessing = false;
             const panel = document.getElementById('mainPanel');
             panel.classList.remove('shake-screen-light', 'shake-screen-heavy', 'fire-screen');
@@ -6626,12 +6743,14 @@ const panel = document.getElementById('mainPanel');
                 // Cover ID Ailesi: bu şarkının aynı coverId'yi taşıyan diğer versiyonlarını da
                 // bu oturum için "soruldu" say - aynı seansta iki farklı yorumu tekrar sormasın.
                 if (correctData.coverId && correctData.coverId !== "") {
+                    let vetoEdilen = [];
                     pool.forEach(s => {
                         if (s.coverId === correctData.coverId && s.title !== correctData.title) {
                             const key = s.title + "|" + s.artist;
-                            if (!playedQuestions.includes(key)) playedQuestions.push(key);
+                            if (!playedQuestions.includes(key)) { playedQuestions.push(key); vetoEdilen.push(s.title); }
                         }
                     });
+                    if (vetoEdilen.length > 0) console.log(`🔗 Cover ID "${correctData.coverId}" ailesi: "${correctData.title}" soruldu, bu oturumda vetolananlar:`, vetoEdilen);
                 }
             }
             window.currentCorrectSongObj = correctData; 
@@ -6939,11 +7058,22 @@ function trackModeJokerUsage() {
         }
 
         let _spotifyAudioEl = null;
+        let _spotifyStopTimeout = null;
+
+        // Ekran/soru değişiminde çalan önizlemeyi kesin olarak susturur.
+        // Paylaşılan bir fonksiyon: menüye dönüş, yeni soru, oyun bitişi gibi her geçişte çağrılır.
+        function stopPreviewAudio() {
+            if (_spotifyStopTimeout) { clearTimeout(_spotifyStopTimeout); _spotifyStopTimeout = null; }
+            if (_spotifyAudioEl) { _spotifyAudioEl.pause(); _spotifyAudioEl.currentTime = 0; _spotifyAudioEl = null; }
+        }
+
         function useJokerListen() {
             if (sandboxJokerEngelliMi('btnJokerListen')) return;
             if (sessionJokers.listen <= 0) return;
             const song = window.currentCorrectSongObj;
-            const audioUrl = song && (song.spotifyPreviewUrl || song.itunesPreviewUrl || song.customPreviewAudio);
+            // ÖNEMLİ: Kendi yüklediğin dosya her zaman öncelikli olmalı - çünkü Spotify/iTunes
+            // yanlış şarkıyı eşleştirmiş olabilir ve sen bunu bilerek elle düzeltmiş olursun.
+            const audioUrl = song && (song.customPreviewAudio || song.spotifyPreviewUrl || song.itunesPreviewUrl);
             if (!audioUrl) {
                 showToast("Ses Bulunamadı", "Bu şarkı için henüz bir ses önizlemesi eklenmemiş.", "🔇");
                 return;
@@ -6953,12 +7083,15 @@ function trackModeJokerUsage() {
             trackModeJokerUsage(); saveAppData();
 
             try {
-                if (_spotifyAudioEl) { _spotifyAudioEl.pause(); _spotifyAudioEl = null; }
+                // ÖNEMLİ: Önceki çalan sesi VE ona ait "durdurma" zamanlayıcısını temizliyoruz.
+                // Bunu yapmazsak, eski bir setTimeout daha sonra tetiklenip YENİ başlayan sesi
+                // yanlışlıkla birkaç saniyede kesebiliyordu (paylaşılan değişken hatası).
+                stopPreviewAudio();
                 _spotifyAudioEl = new Audio(audioUrl);
                 _spotifyAudioEl.volume = 0.7;
                 _spotifyAudioEl.play().catch(() => {});
                 showToast("🎧 Çalıyor...", "Önizleme başladı.", "🎵");
-                setTimeout(() => { if (_spotifyAudioEl) { _spotifyAudioEl.pause(); _spotifyAudioEl = null; } }, 30000);
+                _spotifyStopTimeout = setTimeout(() => { stopPreviewAudio(); }, 30000);
             } catch (e) {
                 console.warn("Önizleme çalınamadı:", e);
             }
@@ -7021,9 +7154,14 @@ function trackModeJokerUsage() {
                     veritabaninaGonder("dogru", songData ? songData.title : "Genel");
 
                     if(comboCount > 0 && comboCount % 5 === 0 && (currentMode !== 'sandbox' || !sandboxConfig || sandboxConfig.comboJokerGift)) {
-                        const keys = ['fifty', 'chance', 'pass', 'audience', 'hint'];
-                        const names = { fifty: '%50', chance: '2. Şans', pass: 'Pas', audience: 'Seyirci', hint: 'İpucu' };
-                        const icons = { fifty: '🎁', chance: '💖', pass: '⏭️', audience: '👥', hint: '💡' };
+                        let keys = ['fifty', 'chance', 'pass', 'audience', 'hint', 'listen'];
+                        const names = { fifty: '%50', chance: '2. Şans', pass: 'Pas', audience: 'Seyirci', hint: 'İpucu', listen: 'Sesi Dinle' };
+                        const icons = { fifty: '🎁', chance: '💖', pass: '⏭️', audience: '👥', hint: '💡', listen: '🎧' };
+                        // Sandbox'ta bazı jokerler kapatılmışsa, kombo hediyesi de sadece AÇIK olanlardan seçilsin.
+                        if (currentMode === 'sandbox' && sandboxConfig && sandboxConfig.jokerToggles) {
+                            const acikKeys = keys.filter(k => sandboxConfig.jokerToggles[k] !== false);
+                            if (acikKeys.length > 0) keys = acikKeys;
+                        }
                         let rJoker = keys[Math.floor(Math.random() * keys.length)];
                         sessionJokers[rJoker]++;
                         renderJokers();
@@ -7082,6 +7220,7 @@ function trackModeJokerUsage() {
         }
 
         function endGame() {
+            stopPreviewAudio();
             resetTestModeState(false);
             clearInterval(timerInterval);
             clearTimeout(idleTimer);
