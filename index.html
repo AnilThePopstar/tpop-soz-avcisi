@@ -513,39 +513,50 @@
                     </button>
                 </div>
 
-                <div id="dailySongPanel" class="daily-song-panel p-3 rounded-2xl relative overflow-hidden">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 id="dailySongHeading" class="text-xs font-black uppercase tracking-widest text-pink-200"><i class="fas fa-star text-amber-300 mr-1"></i> Günün Şarkısı</h3>
-                    </div>
-                    <div id="dailySongContent" class="text-center">
-                        <div id="dailySongEmoji" class="text-4xl mb-1 drop-shadow-lg">🎵</div>
-                        <div id="dailySongTitle" class="text-base font-black text-white drop-shadow-md">—</div>
-                        <div id="dailySongArtist" class="text-xs text-pink-200 font-semibold mb-2">—</div>
-                        <div id="dailySongAgeText" class="text-[11px] text-amber-200 font-bold bg-black/25 rounded-lg px-2 py-1.5 leading-snug"></div>
-                        <div class="flex items-center justify-center gap-2 mt-3">
-                            <button onclick="dailySongNav(-1)" class="daily-song-arrow w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0"><i class="fas fa-chevron-left text-xs"></i></button>
-                            <button id="dailySongPlayBtn" onclick="dailySongOynat()" class="hidden w-9 h-9 rounded-full bg-emerald-500/80 hover:bg-emerald-400 flex items-center justify-center text-white flex-shrink-0 shadow-lg" title="Önizlemeyi Dinle"><i class="fas fa-play text-xs"></i></button>
-                            <div id="dailySongDots" class="flex justify-center gap-1.5"></div>
-                            <button onclick="dailySongNav(1)" class="daily-song-arrow w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0"><i class="fas fa-chevron-right text-xs"></i></button>
+                <div class="flex flex-col">
+                    <div id="dailySongPanel" class="daily-song-panel p-3 rounded-2xl relative overflow-hidden">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 id="dailySongHeading" class="text-xs font-black uppercase tracking-widest text-pink-200"><i class="fas fa-star text-amber-300 mr-1"></i> Günün Şarkısı</h3>
+                        </div>
+                        <div id="dailySongContent" class="text-center">
+                            <div id="dailySongEmoji" class="text-4xl mb-1 drop-shadow-lg">🎵</div>
+                            <div id="dailySongTitle" class="text-base font-black text-white drop-shadow-md">—</div>
+                            <div id="dailySongArtist" class="text-xs text-pink-200 font-semibold mb-2">—</div>
+                            <div id="dailySongAgeText" class="text-[11px] text-amber-200 font-bold bg-black/25 rounded-lg px-2 py-1.5 leading-snug"></div>
+                            <div class="flex items-center justify-center gap-2 mt-3">
+                                <button onclick="dailySongNav(-1)" class="daily-song-arrow w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0"><i class="fas fa-chevron-left text-xs"></i></button>
+                                <button id="dailySongPlayBtn" onclick="dailySongOynat()" class="hidden w-9 h-9 rounded-full bg-emerald-500/80 hover:bg-emerald-400 flex items-center justify-center text-white flex-shrink-0 shadow-lg" title="Önizlemeyi Dinle/Duraklat"><i id="dailySongPlayIcon" class="fas fa-play text-xs"></i></button>
+                                <div id="dailySongDots" class="flex justify-center gap-1.5"></div>
+                                <button onclick="dailySongNav(1)" class="daily-song-arrow w-8 h-8 rounded-full flex items-center justify-center text-white flex-shrink-0"><i class="fas fa-chevron-right text-xs"></i></button>
+                            </div>
+                        </div>
+                        <div id="dailySongEmptyState" class="hidden text-center py-2">
+                            <div class="text-3xl mb-2">😔</div>
+                            <p class="text-xs text-gray-300 font-semibold leading-snug">Elimizde geçmişte bugün çıkan hiç şarkı yok.</p>
                         </div>
                     </div>
-                    <div id="dailySongEmptyState" class="hidden text-center py-2">
-                        <div class="text-3xl mb-2">😔</div>
-                        <p class="text-xs text-gray-300 font-semibold leading-snug">Elimizde geçmişte bugün çıkan hiç şarkı yok.</p>
-                    </div>
-                </div>
 
-                <div id="randomLyricBox" class="daily-song-panel p-3 rounded-2xl relative overflow-hidden mt-3">
-                    <h3 class="text-xs font-black uppercase tracking-widest text-sky-200 mb-2"><i class="fas fa-feather-alt text-sky-300 mr-1"></i> Rastgele Söz</h3>
-                    <p id="randomLyricText" class="text-xs text-gray-200 italic leading-snug mb-2">—</p>
-                    <p id="randomLyricSource" class="text-[10px] text-sky-300 font-bold text-right">—</p>
+                    <div id="randomLyricBox" class="daily-song-panel p-3 rounded-2xl relative overflow-hidden mt-3">
+                        <h3 class="text-xs font-black uppercase tracking-widest text-sky-200 mb-2"><i class="fas fa-feather-alt text-sky-300 mr-1"></i> Rastgele Söz</h3>
+                        <p id="randomLyricText" class="text-xs text-gray-200 italic leading-snug mb-2">—</p>
+                        <p id="randomLyricSource" class="text-[10px] text-sky-300 font-bold text-right">—</p>
+                    </div>
                 </div>
             </div>
 
             <div class="grid grid-cols-3 gap-3">
-                <button onclick="showStats()" class="bg-purple-900/80 hover:bg-purple-800 text-purple-100 py-4 rounded-xl font-bold btn-hover-effect text-sm border border-purple-500/50 shadow-inner pulse-glow"><i class="fas fa-chart-pie mb-1 block text-2xl text-purple-300 drop-shadow-md"></i> İstatistik</button>
-                <button onclick="showAchievements()" class="bg-emerald-900/80 hover:bg-emerald-800 text-emerald-100 py-4 rounded-xl font-bold btn-hover-effect text-sm border border-emerald-500/50 shadow-inner pulse-glow"><i class="fas fa-medal mb-1 block text-2xl text-emerald-300 drop-shadow-md"></i> Rozetler</button>
-                <button onclick="showShop()" class="bg-amber-900/80 hover:bg-amber-800 text-amber-100 py-4 rounded-xl font-bold btn-hover-effect text-sm border border-amber-500/50 shadow-inner pulse-glow"><i class="fas fa-store mb-1 block text-2xl text-amber-300 drop-shadow-md"></i> Dükkan</button>
+                <button onclick="showStats()" class="relative overflow-hidden bg-gradient-to-br from-purple-800 to-purple-950 hover:from-purple-700 hover:to-purple-900 text-purple-100 py-4 rounded-xl font-bold btn-hover-effect text-sm border border-purple-400/50 shadow-[0_0_18px_rgba(168,85,247,0.25)] pulse-glow">
+                    <i class="fas fa-chart-pie mb-1 block text-2xl text-purple-300 drop-shadow-md"></i> İstatistik
+                    <div id="homeStatsSub" class="text-[10px] font-semibold text-purple-300/80 mt-1 normal-case"></div>
+                </button>
+                <button onclick="showAchievements()" class="relative overflow-hidden bg-gradient-to-br from-emerald-800 to-emerald-950 hover:from-emerald-700 hover:to-emerald-900 text-emerald-100 py-4 rounded-xl font-bold btn-hover-effect text-sm border border-emerald-400/50 shadow-[0_0_18px_rgba(16,185,129,0.25)] pulse-glow">
+                    <i class="fas fa-medal mb-1 block text-2xl text-emerald-300 drop-shadow-md"></i> Rozetler
+                    <div id="homeBadgesSub" class="text-[10px] font-semibold text-emerald-300/80 mt-1 normal-case"></div>
+                </button>
+                <button onclick="showShop()" class="relative overflow-hidden bg-gradient-to-br from-amber-800 to-amber-950 hover:from-amber-700 hover:to-amber-900 text-amber-100 py-4 rounded-xl font-bold btn-hover-effect text-sm border border-amber-400/50 shadow-[0_0_18px_rgba(245,158,11,0.25)] pulse-glow">
+                    <i class="fas fa-store mb-1 block text-2xl text-amber-300 drop-shadow-md"></i> Dükkan
+                    <div id="homeShopSub" class="text-[10px] font-semibold text-amber-300/80 mt-1 normal-case"></div>
+                </button>
             </div>
         </div>
 
@@ -1165,14 +1176,21 @@
         console.log("✅ Firebase bağlantısı kuruldu (index.html).");
 
         window.veritabaninaGonder = (durum, sarki) => {
-            push(ref(db, 'oyun_verileri/'), { durum, sarki, zaman: Date.now() })
-                .then(() => {
-                    console.log("✅ Veritabanına yazıldı:", { durum, sarki });
-                })
-                .catch((err) => {
-                    // Artık hata sessizce yutulmuyor, konsolda ve ekranda görünüyor.
-                    console.error("❌ Firebase YAZMA HATASI:", err.code, err.message);
-                });
+            try {
+                push(ref(db, 'oyun_verileri/'), { durum: durum ?? 'bilinmiyor', sarki: sarki ?? 'Genel', zaman: Date.now() })
+                    .then(() => {
+                        console.log("✅ Veritabanına yazıldı:", { durum, sarki });
+                    })
+                    .catch((err) => {
+                        // Artık hata sessizce yutulmuyor, konsolda görünüyor.
+                        console.error("❌ Firebase YAZMA HATASI:", err.code, err.message);
+                    });
+            } catch (err) {
+                // ÖNEMLİ: push() bazı geçersiz (örn. undefined) değerlerde SENKRON olarak hata fırlatabiliyordu.
+                // Bu, çağıran fonksiyonun (checkAnswer gibi) ortasında kesilmesine ve can/puan
+                // güncellemelerinin hiç çalışmamasına yol açıyordu. Artık burada güvenle yakalanıyor.
+                console.error("❌ Firebase YAZMA HATASI (senkron):", err.message);
+            }
         };
 
         // Firebase key olarak kullanılamayan karakterleri (. # $ [ ] /) temizler.
@@ -4713,7 +4731,18 @@ function sarkiVeritabaniniGenislet() {
                     itunesAlbumArt: song.itunesAlbumArt || null,
                     customPreviewAudio: song.customPreviewAudio || null
                 });
-                const mevcutIndex = songsDatabase.findIndex(mevcut => mevcut.title === s.title && mevcut.artist === s.artist);
+                let mevcutIndex = songsDatabase.findIndex(mevcut => mevcut.title === s.title && mevcut.artist === s.artist);
+                if (mevcutIndex === -1) {
+                    // Hayalet Şarkı Düzeltmesi: admin panelinden şarkının adı değiştirilmiş olabilir
+                    // (ör. "Keyfi Halik" -> "Keyf-i Halik"). Böyle bir durumda tam başlık eşleşmesi
+                    // bulunamaz ve eski başlık koddaki statik listede sonsuza dek "hayalet" olarak kalır.
+                    // Aynı sanatçıya ait, noktalama/boşluk farkı hariç aynı görünen eski kaydı bulup
+                    // YENİ veriyle DEĞİŞTİRİYORUZ (yeni satır eklemek yerine), böylece eski isim
+                    // artık sorulmaz ve veritabanıyla senkron kalır.
+                    const normalizeTitle = t => (t || '').toLocaleLowerCase('tr').replace(/[^a-z0-9çğıöşü]/gi, '');
+                    const sNorm = normalizeTitle(s.title);
+                    mevcutIndex = songsDatabase.findIndex(mevcut => mevcut.artist === s.artist && normalizeTitle(mevcut.title) === sNorm);
+                }
                 if (mevcutIndex === -1) {
                     songsDatabase.push(normalize(s));
                     eklenen++;
@@ -5892,22 +5921,55 @@ function spawnThemeParticles() {
 
             const hasPreview = song.customPreviewAudio || song.spotifyPreviewUrl || song.itunesPreviewUrl;
             playBtn.classList.toggle('hidden', !hasPreview);
+
+            // Şarkı değişti (ok tuşlarıyla gezinme veya menüye yeniden giriş) - eski ses varsa durdur, ikonu sıfırla.
+            if (_dailySongPreviewAudio) { _dailySongPreviewAudio.pause(); _dailySongPreviewAudio = null; }
+            _dailySongPreviewSongKey = null;
+            const playIcon = document.getElementById('dailySongPlayIcon');
+            if (playIcon) { playIcon.classList.remove('fa-pause'); playIcon.classList.add('fa-play'); }
         }
 
         let _dailySongPreviewAudio = null;
+        let _dailySongPreviewSongKey = null;
         function dailySongOynat() {
             const list = getGununSarkilari();
             const song = list[_dailySongIndex];
             if (!song) return;
             const url = song.customPreviewAudio || song.spotifyPreviewUrl || song.itunesPreviewUrl;
             if (!url) return;
+            const playIcon = document.getElementById('dailySongPlayIcon');
+            const songKey = song.title + '|' + song.artist;
+
+            // Aynı şarkı zaten yüklüyse: oynat/duraklat arasında geçiş yap (Play/Pause).
+            if (_dailySongPreviewAudio && _dailySongPreviewSongKey === songKey) {
+                if (_dailySongPreviewAudio.paused) {
+                    _dailySongPreviewAudio.play().catch(() => {});
+                    if (playIcon) { playIcon.classList.remove('fa-play'); playIcon.classList.add('fa-pause'); }
+                } else {
+                    _dailySongPreviewAudio.pause();
+                    if (playIcon) { playIcon.classList.remove('fa-pause'); playIcon.classList.add('fa-play'); }
+                }
+                return;
+            }
+
             try {
                 stopPreviewAudio();
                 if (_dailySongPreviewAudio) { _dailySongPreviewAudio.pause(); _dailySongPreviewAudio = null; }
                 _dailySongPreviewAudio = new Audio(url);
+                _dailySongPreviewSongKey = songKey;
                 _dailySongPreviewAudio.volume = 0.7;
                 _dailySongPreviewAudio.play().catch(() => {});
-                setTimeout(() => { if (_dailySongPreviewAudio) { _dailySongPreviewAudio.pause(); _dailySongPreviewAudio = null; } }, 30000);
+                if (playIcon) { playIcon.classList.remove('fa-play'); playIcon.classList.add('fa-pause'); }
+                _dailySongPreviewAudio.addEventListener('ended', () => {
+                    if (playIcon) { playIcon.classList.remove('fa-pause'); playIcon.classList.add('fa-play'); }
+                    _dailySongPreviewAudio = null; _dailySongPreviewSongKey = null;
+                });
+                setTimeout(() => {
+                    if (_dailySongPreviewAudio && _dailySongPreviewSongKey === songKey) {
+                        _dailySongPreviewAudio.pause(); _dailySongPreviewAudio = null; _dailySongPreviewSongKey = null;
+                        if (playIcon) { playIcon.classList.remove('fa-pause'); playIcon.classList.add('fa-play'); }
+                    }
+                }, 30000);
             } catch (e) { console.warn('Günün Şarkısı önizlemesi çalınamadı:', e); }
         }
 
@@ -6009,6 +6071,15 @@ function spawnThemeParticles() {
             renderDailySongPanel();
             renderRandomLyricBox();
             checkAdminInbox();
+
+            // İstatistik / Rozetler / Dükkan kutucuklarının altına küçük, canlı bilgi satırları ekle.
+            const st = activeProfile.stats || {};
+            const statsSub = document.getElementById('homeStatsSub');
+            if (statsSub) statsSub.innerText = `${st.gamesPlayed || 0} oyun · en yüksek ${st.highestScore || 0}`;
+            const badgesSub = document.getElementById('homeBadgesSub');
+            if (badgesSub) badgesSub.innerText = `${(activeProfile.achievements || []).length}/${BADGES.length} açıldı`;
+            const shopSub = document.getElementById('homeShopSub');
+            if (shopSub) shopSub.innerText = `💰 ${activeProfile.coins} altın`;
 
             let el = document.getElementById('dashboardScreen');
             el.classList.remove('hidden'); el.classList.remove('screen-transition'); void el.offsetWidth; el.classList.add('screen-transition');
@@ -6428,9 +6499,15 @@ function applyFrame(frameClass) {
             const includeDuets = document.getElementById('sb_toggleDuets').dataset.on === 'true';
 
             return songsDatabase.filter(s => {
-                if (s.isForeignGuest) return false;
                 const y = s.year || (s.releaseDate && s.releaseDate.year);
                 if (y && (y < yearMin || y > yearMax)) return false;
+
+                // Misafir/yabancı sanatçılar (ör. Andrea), sadece o sanatçı AÇIKÇA seçilmediyse
+                // rastgele/varsayılan havuzdan hariç tutulur. Seçildiğinde şarkıları havuza dahil olmalı.
+                const parcalarTum = sbSanatciParcalari(s.artist);
+                const buSanatciSecildiMi = selectedArtists.includes(s.artist) || (includeDuets && parcalarTum.some(p => selectedArtists.includes(p)));
+                if (s.isForeignGuest && !buSanatciSecildiMi) return false;
+
                 if (selectedArtists.length === 0) return true;
 
                 // 1) Doğrudan tam eşleşme: tekli sanatçı VEYA seçilen düet isminin kendisi (örn. "Andrea & Ork. Kristali" direkt seçildiyse).
@@ -6789,12 +6866,23 @@ const panel = document.getElementById('mainPanel');
                 });
 
             } else if (currentMode === 'fillBlank') {
-                const fullLyric = correctData.lyrics[Math.floor(Math.random() * correctData.lyrics.length)];
+                // Sadece ayraç görevi gören ("-" gibi) veya boş satırları soru havuzundan çıkar.
+                let fillBlankCandidates = correctData.lyrics.filter(line => line.trim() !== "-" && line.trim() !== "");
+                const fullLyric = fillBlankCandidates.length > 0
+                    ? fillBlankCandidates[Math.floor(Math.random() * fillBlankCandidates.length)]
+                    : correctData.lyrics[0];
                 let cleanLyricStr = fullLyric.replace(/<br>/g, ' ');
                 let words = cleanLyricStr.split(' ');
-                
-                let validWords = words.filter(w => w.replace(/[.,!?"]/g, '').length >= 4);
-                let selectedWordRaw = validWords.length > 0 ? validWords[Math.floor(Math.random() * validWords.length)] : words[0];
+
+                // Kelime havuzunu sadece gerçek harflerden oluşan (rakam/sembol/tire/ayraç olmayan) kelimelerle sınırla.
+                const isRealWord = w => {
+                    const clean = w.replace(/[.,!?"]/g, '').trim();
+                    return clean.length >= 4 && /[a-zA-ZçÇğĞıİöÖşŞüÜ]/.test(clean) && clean !== "-";
+                };
+                let validWords = words.filter(isRealWord);
+                let selectedWordRaw = validWords.length > 0
+                    ? validWords[Math.floor(Math.random() * validWords.length)]
+                    : (words.find(isRealWord) || words.find(w => w.trim() !== "" && w.trim() !== "-") || words[0]);
                 let selectedWordClean = selectedWordRaw.replace(/[.,!?"]/g, '');
                 
                 currentCorrectAnswer = selectedWordClean;
@@ -6805,8 +6893,10 @@ const panel = document.getElementById('mainPanel');
                 let attempts = 0;
                 while(options.length < 4 && attempts < 100) {
                     let rData = distractorPool[Math.floor(Math.random() * distractorPool.length)];
-                    let rLyric = rData.lyrics[0].replace(/<br>/g, ' ');
-                    let rWords = rLyric.split(' ').filter(w => w.replace(/[.,!?"]/g, '').length >= 4);
+                    let rCandidateLines = rData.lyrics.filter(line => line.trim() !== "-" && line.trim() !== "");
+                    let rLine = rCandidateLines.length > 0 ? rCandidateLines[Math.floor(Math.random() * rCandidateLines.length)] : rData.lyrics[0];
+                    let rLyric = rLine.replace(/<br>/g, ' ');
+                    let rWords = rLyric.split(' ').filter(isRealWord);
                     if(rWords.length > 0) {
                         let rwClean = rWords[Math.floor(Math.random() * rWords.length)].replace(/[.,!?"]/g, '');
                         if(!options.includes(rwClean)) options.push(rwClean);
@@ -7122,7 +7212,7 @@ function trackModeJokerUsage() {
                 allBtns.forEach(btn => { btn.disabled = true; if(btn.dataset.isCorrect === "true") btn.classList.add('correct'); });
 
                 let songData = window.currentCorrectSongObj;
-                if (currentMode === 'fillBlank') { songData = { artist: "", emoji: "🧩" }; }
+                if (currentMode === 'fillBlank' && songData) { songData = { artist: "", title: songData.title || "Genel", emoji: "🧩" }; }
                 
                 let artistName = songData ? songData.artist : "";
                 let songEmoji = songData ? songData.emoji : "🎵";

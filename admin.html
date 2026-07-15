@@ -331,8 +331,9 @@
                             <input id="sf_reverseHint" type="text" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-400">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-gray-400 block mb-1">Cover ID (aynı şarkının farklı yorumlarını gruplamak için)</label>
+                            <label class="text-xs font-bold text-gray-400 block mb-1">Cover ID</label>
                             <input id="sf_coverId" type="text" placeholder="Örn: makas_2010" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-400">
+                            <p class="text-[10px] text-gray-500 mt-1">Aynı şarkının farklı yorumlarını gruplamak için</p>
                         </div>
                         <div>
                             <label class="text-xs font-bold text-gray-400 block mb-1">Bu tarih neyin çıkış tarihi?</label>
@@ -789,6 +790,12 @@
                 <button id="pd_close" class="text-gray-400 hover:text-white text-xl"><i class="fas fa-times"></i></button>
             </div>
             <div id="pd_content" class="grid grid-cols-2 gap-3 text-sm"></div>
+            <div class="mt-5 pt-4 border-t border-white/10">
+                <button id="pd_removePhoto" class="w-full text-red-400 hover:text-red-300 text-xs font-bold border border-red-500/40 bg-red-500/10 hover:bg-red-500/20 px-3 py-2 rounded-lg transition-colors">
+                    <i class="fas fa-user-slash mr-1"></i> Profil Resmini Kaldır
+                </button>
+                <p id="pd_removePhotoStatus" class="text-xs mt-2 text-center"></p>
+            </div>
         </div>
     </div>
 
@@ -1059,7 +1066,7 @@
                     <td class="py-4 font-bold text-amber-400">${fmt(st.highestScore)}</td>
                     <td class="py-4 text-gray-400 whitespace-nowrap">${u.createdAt || '—'}</td>
                     <td class="py-4 text-gray-400">${timeAgo(u.lastSeen)}</td>
-                    <td class="py-4 text-right whitespace-nowrap space-x-1">
+                    <td class="py-4 text-left whitespace-nowrap space-x-1">
                         <button data-user="${u.username}" class="pd-btn text-purple-400 hover:text-purple-300 text-xs font-bold border border-purple-500/40 bg-purple-500/10 px-2 py-1.5 rounded-lg" title="Detay"><i class="fas fa-id-card"></i></button>
                         <button data-user="${u.username}" class="rw-btn text-emerald-400 hover:text-emerald-300 text-xs font-bold border border-emerald-500/40 bg-emerald-500/10 px-2 py-1.5 rounded-lg" title="Ödül Gönder"><i class="fas fa-gift"></i></button>
                         <button data-user="${u.username}" class="wn-btn text-red-400 hover:text-red-300 text-xs font-bold border border-red-500/40 bg-red-500/10 px-2 py-1.5 rounded-lg" title="Uyarı Gönder"><i class="fas fa-exclamation-triangle"></i></button>
@@ -1105,7 +1112,9 @@
         return String(username).replace(/[.#$\[\]\/]/g, '_').trim();
     }
 
+    let _pdCurrentUser = null;
     function openPlayerDetail(username) {
+        _pdCurrentUser = username;
         const u = findUser(username);
         if (!u) return;
         const st = u.stats || {};
@@ -1125,6 +1134,34 @@
         document.getElementById('playerDetailModal').classList.remove('hidden');
     }
     document.getElementById('pd_close').addEventListener('click', () => document.getElementById('playerDetailModal').classList.add('hidden'));
+
+    document.getElementById('pd_removePhoto').addEventListener('click', async () => {
+        const statusEl = document.getElementById('pd_removePhotoStatus');
+        if (!_pdCurrentUser) return;
+        if (!confirm(`${_pdCurrentUser} adlı oyuncunun profil resmini kaldırmak istediğine emin misin? Oyuncuya otomatik uyarı mesajı gönderilecek.`)) return;
+        try {
+            statusEl.className = 'text-xs mt-2 text-center text-sky-300 font-bold';
+            statusEl.innerText = 'Kaldırılıyor...';
+            // Veritabanındaki profil resmi alanını sil (ileride online sürümde kullanılacak alan adıyla uyumlu).
+            await remove(ref(db, `users/${userKey(_pdCurrentUser)}/profilePicture`));
+            // Oyuncunun mesaj kutusuna otomatik uyarı gönder.
+            const logRef = push(ref(db, 'adminGonderilenler'));
+            const id = logRef.key;
+            const payload = {
+                type: 'warning', hedefKullanici: _pdCurrentUser,
+                mesaj: 'Profil resminiz uygunsuz olduğu için kaldırıldı.',
+                zaman: Date.now(), durum: 'bekliyor'
+            };
+            await set(ref(db, `users/${userKey(_pdCurrentUser)}/adminInbox/${id}`), payload);
+            await set(logRef, payload);
+            statusEl.className = 'text-xs mt-2 text-center text-emerald-400 font-bold';
+            statusEl.innerText = '✅ Profil resmi kaldırıldı ve oyuncuya bildirim gönderildi.';
+        } catch (err) {
+            console.error('❌ Profil resmi kaldırılamadı:', err.code, err.message);
+            statusEl.className = 'text-xs mt-2 text-center text-red-400 font-bold';
+            statusEl.innerText = `❌ Hata: ${err.code || err.message}`;
+        }
+    });
 
     let _rewardTargetUser = null;
     function openRewardModal(username) {
@@ -1782,6 +1819,21 @@
             </tr>`).join('');
 
         wireListenButtons();
+
+        // Tablo, Firebase'den her veri değişikliğinde (onValue) yeniden çizildiği için
+        // o an çalmakta olan sesin ikonu sıfırlanıyordu (▶ görünüp aslında ❚❚ olması gerekiyordu).
+        // Yeniden çizimden sonra, hâlâ çalan/aktif bir ses varsa ikonunu gerçek duruma göre senkronize et.
+        if (_adminAudioKey && _adminAudio) {
+            const activeBtn = tbody.querySelector(`.listen-test-btn[data-key="${_adminAudioKey}"]`);
+            const activeIcon = activeBtn?.querySelector('.listen-test-icon');
+            if (activeIcon) {
+                if (_adminAudio.paused) { activeIcon.classList.remove('fa-pause'); activeIcon.classList.add('fa-play'); }
+                else { activeIcon.classList.remove('fa-play'); activeIcon.classList.add('fa-pause'); }
+            } else {
+                // Şarkı listeden filtrelenip kayboldu; sesi durdur.
+                adminSesiDurdur();
+            }
+        }
 
         tbody.querySelectorAll('.spotify-fetch-btn').forEach(btn => {
             btn.addEventListener('click', () => spotifydanCek(btn.dataset.key, btn));
