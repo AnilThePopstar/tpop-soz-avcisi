@@ -356,7 +356,11 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
         
         .modal-overlay { backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); }
-        .text-bg-guard { background-color: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(5px); }
+        .text-bg-guard {
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+        }
 
         /* ---- Mod Butonları: Gradyan + Hover Glow ---- */
         .mode-btn { position: relative; transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
@@ -519,6 +523,9 @@
                             <h3 id="dailySongHeading" class="text-xs font-black uppercase tracking-widest text-pink-200"><i class="fas fa-star text-amber-300 mr-1"></i> Günün Şarkısı</h3>
                         </div>
                         <div id="dailySongContent" class="text-center">
+                            <div id="dailySongCoverWrap" class="hidden w-16 h-16 mx-auto mb-2 rounded-xl overflow-hidden border-2 border-white/20 shadow-lg bg-black/30">
+                                <img id="dailySongCover" src="" alt="Şarkı Kapağı" class="w-full h-full object-cover">
+                            </div>
                             <div id="dailySongEmoji" class="text-4xl mb-1 drop-shadow-lg">🎵</div>
                             <div id="dailySongTitle" class="text-base font-black text-white drop-shadow-md">—</div>
                             <div id="dailySongArtist" class="text-xs text-pink-200 font-semibold mb-2">—</div>
@@ -727,7 +734,7 @@
 
             <div class="min-h-[160px] flex flex-col md:flex-row items-center justify-center gap-5 mb-8 text-center bg-black/50 p-8 rounded-2xl border border-white/10 relative shadow-inner backdrop-blur-md">
                 <img id="questionCoverImg" src="" alt="Şarkı Kapağı" class="hidden w-20 h-20 md:w-28 md:h-28 rounded-xl object-cover border-2 border-white/20 shadow-lg flex-shrink-0 bg-black/40">
-                <div id="lyricText" class="text-xl md:text-2xl lg:text-3xl font-bold italic leading-relaxed text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-300 drop-shadow-lg transition-all">
+                <div id="lyricText" class="min-w-0 flex-1 text-xl md:text-2xl lg:text-3xl font-bold italic leading-relaxed text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-300 drop-shadow-lg transition-all">
                     "Yükleniyor..."
                 </div>
             </div>
@@ -4775,6 +4782,18 @@ function sarkiVeritabaniniGenislet() {
             // olabilir. Merge bittiğinde, dashboard açıksa paneli tekrar çiziyoruz.
             if (typeof window.renderDailySongPanel === 'function') window.renderDailySongPanel();
             if (typeof window.renderRandomLyricBox === 'function') window.renderRandomLyricBox();
+
+            // Merge bittiğinde ekranda zaten bir soru varsa (oyuna Firebase verisi gelmeden hızlıca
+            // başlanmışsa), o sorunun kapak resmi eksik kalmış olabilir. Aynı şarkıyı güncel
+            // (kapak bilgisi eklenmiş) haliyle yeniden bulup kapağı tazeliyoruz.
+            if (window.currentCorrectSongObj) {
+                const cur = window.currentCorrectSongObj;
+                const fresh = songsDatabase.find(s => s.title === cur.title && s.artist === cur.artist);
+                if (fresh && fresh !== cur) {
+                    window.currentCorrectSongObj = fresh;
+                    if (typeof updateQuestionCoverImage === 'function') updateQuestionCoverImage(fresh);
+                }
+            }
         } catch (err) {
             console.error("❌ Ek şarkılar çekilirken hata:", err);
         }
@@ -5917,6 +5936,20 @@ function spawnThemeParticles() {
             document.getElementById('dailySongTitle').innerText = song.title;
             document.getElementById('dailySongArtist').innerText = song.artist;
 
+            const coverWrap = document.getElementById('dailySongCoverWrap');
+            const coverImg = document.getElementById('dailySongCover');
+            const emojiEl = document.getElementById('dailySongEmoji');
+            const coverUrl = typeof getSongCover === 'function' ? getSongCover(song) : null;
+            if (coverUrl) {
+                coverImg.src = coverUrl;
+                coverImg.onerror = () => { coverWrap.classList.add('hidden'); emojiEl.classList.remove('hidden'); };
+                coverWrap.classList.remove('hidden');
+                emojiEl.classList.add('hidden');
+            } else {
+                coverWrap.classList.add('hidden');
+                emojiEl.classList.remove('hidden');
+            }
+
             const ageText = document.getElementById('dailySongAgeText');
             const releaseYear = song.releaseDate && song.releaseDate.year ? song.releaseDate.year : null;
 
@@ -6815,6 +6848,18 @@ const panel = document.getElementById('mainPanel');
         }
 
         // Bir şarkının kapak resmini döndürür: admin panelinden yüklenen özel kapak > Spotify > iTunes.
+        // Şarkı adı çok uzunsa (ör. "Murat Boz & Soner Sarıkabadayı" gibi uzun sanatçı/şarkı adları)
+        // sabit text-3xl boyutu taştırabiliyordu. Uzunluğa göre otomatik küçülterek her zaman
+        // kutunun içinde kalmasını sağlıyoruz; break-words zaten satır sarmasını garantiliyor,
+        // bu ekstra bir güvenlik katmanı.
+        function getTitleSizeClass(text) {
+            const len = (text || '').length;
+            if (len > 40) return 'text-lg md:text-xl';
+            if (len > 26) return 'text-xl md:text-2xl';
+            if (len > 16) return 'text-2xl md:text-3xl';
+            return 'text-3xl';
+        }
+
         function getSongCover(song) {
             if (!song) return null;
             return song.customCoverImage || song.spotifyAlbumArt || song.itunesAlbumArt || null;
@@ -6828,6 +6873,7 @@ const panel = document.getElementById('mainPanel');
             const showModes = ['nextLyric', 'guessYear', 'reverse'];
             const url = showModes.includes(currentMode) ? getSongCover(song) : null;
             if (url) {
+                img.onerror = () => img.classList.add('hidden');
                 img.src = url;
                 img.classList.remove('hidden');
             } else {
@@ -6932,7 +6978,7 @@ const panel = document.getElementById('mainPanel');
 
             if (currentMode === 'artist') {
                 currentCorrectAnswer = correctData.artist;
-                document.getElementById('lyricText').innerHTML = `🎵 <span class="text-amber-300 font-black text-3xl drop-shadow-lg text-bg-guard px-4 py-1 rounded-xl">"${correctData.title}"</span><br><span class="text-base text-gray-200 font-bold mt-3 block drop-shadow-md text-bg-guard px-3 py-1 rounded-lg w-max mx-auto">şarkısını kim söylüyor?</span>`;
+                document.getElementById('lyricText').innerHTML = `🎵 <span class="text-amber-300 font-black ${getTitleSizeClass(correctData.title)} drop-shadow-lg block max-w-full mx-auto break-words">"${correctData.title}"</span><span class="text-sm text-gray-300 font-semibold mt-4 block drop-shadow-md max-w-full mx-auto break-words">şarkısını kim söylüyor?</span>`;
 
                 let options = [currentCorrectAnswer];
                 // allArtists listesini sadece distractorPool üzerinden oluştur (Böylece yabancılar vs. otomatik filtrelenmiş olur)
@@ -6943,7 +6989,7 @@ const panel = document.getElementById('mainPanel');
 
                 options.forEach(opt => {
                     const btn = document.createElement('button');
-                    btn.className = 'option-btn w-full text-center p-4 rounded-xl font-bold text-lg shadow-md flex items-center justify-center gap-3';
+                    btn.className = 'option-btn w-full text-center p-4 rounded-xl font-bold text-lg shadow-md flex items-center justify-center gap-3 break-words';
                     const artistPhoto = getArtistPhoto(opt);
                     const artistCrop = getArtistPhotoCrop(opt);
                     const cropZoom = (artistCrop && typeof artistCrop.zoom === 'number') ? artistCrop.zoom : 1;
@@ -7020,7 +7066,7 @@ const panel = document.getElementById('mainPanel');
 
                 currentCorrectAnswer = cleanLyric;
 
-                document.getElementById('lyricText').innerHTML = `🎵 <span class="text-teal-300 font-black text-3xl drop-shadow-lg text-bg-guard px-4 py-1 rounded-xl block w-max mx-auto">"${correctData.title}"</span><br><span class="text-base text-gray-200 font-bold mt-2 block drop-shadow-md text-bg-guard px-3 py-1 rounded-lg w-max mx-auto">- ${correctData.artist}</span><br><span class="text-xs text-gray-300 mt-3 font-semibold block drop-shadow-sm">Bu şarkının sözleri hangisidir?</span>`;
+                document.getElementById('lyricText').innerHTML = `🎵 <span class="text-teal-300 font-black ${getTitleSizeClass(correctData.title)} drop-shadow-lg block max-w-full mx-auto break-words">"${correctData.title}"</span><span class="text-sm text-gray-300 font-semibold mt-1.5 block drop-shadow-md max-w-full mx-auto break-words">- ${correctData.artist}</span><span class="text-xs text-gray-400 mt-4 font-semibold block drop-shadow-sm">Bu şarkının sözleri hangisidir?</span>`;
 
                 let options = [cleanLyric];
                 let attempts = 0;
@@ -7052,7 +7098,7 @@ const panel = document.getElementById('mainPanel');
                 });
 
             } else if (currentMode === 'nextLyric') {
-                document.getElementById('lyricText').innerHTML = `🎵 <span class="text-emerald-300 font-black text-3xl drop-shadow-lg text-bg-guard px-4 py-1 rounded-xl block w-max mx-auto">"${correctData.title}"</span><br><span class="text-base text-gray-200 font-bold mt-2 block drop-shadow-md text-bg-guard px-3 py-1 rounded-lg w-max mx-auto">- ${correctData.artist}</span><br><span class="text-xs text-gray-300 mt-3 mb-2 font-semibold block drop-shadow-sm">Bu sözden sonra hangisi gelir?</span>`;
+                document.getElementById('lyricText').innerHTML = `<span class="text-xs text-gray-400 mb-4 font-semibold block drop-shadow-sm">Bu sözden sonra hangisi gelir?</span>`;
 
                 let allLines = [];
                 correctData.lyrics.forEach(block => {
@@ -7081,7 +7127,7 @@ const panel = document.getElementById('mainPanel');
                 let promptLyric = allLines[chosenIndex] || "Söz bulunamadı...";
                 currentCorrectAnswer = allLines[chosenIndex + 1] || "Söz bulunamadı...";
 
-                document.getElementById('lyricText').innerHTML += `"${promptLyric}"`;
+                document.getElementById('lyricText').innerHTML += `<span class="block text-xl md:text-2xl lg:text-3xl font-black italic text-white drop-shadow-lg max-w-full mx-auto break-words mb-4">"${promptLyric}"</span><span class="flex flex-wrap justify-center items-baseline gap-x-2 gap-y-0.5 text-emerald-300 drop-shadow-md max-w-full mx-auto break-words"><span class="text-sm md:text-base font-bold">🎵 "${correctData.title}"</span><span class="text-xs md:text-sm text-gray-400 font-semibold">- ${correctData.artist}</span></span>`;
 
                 let options = [currentCorrectAnswer];
                 let attempts = 0;
@@ -7115,7 +7161,7 @@ const panel = document.getElementById('mainPanel');
             } else if (currentMode === 'guessYear') {
                 currentCorrectAnswer = correctData.year.toString();
 
-                document.getElementById('lyricText').innerHTML = `🎵 <span class="text-yellow-300 font-black text-3xl drop-shadow-lg text-bg-guard px-4 py-1 rounded-xl block w-max mx-auto">"${correctData.title}"</span><br><span class="text-base text-gray-200 font-bold mt-2 block drop-shadow-md text-bg-guard px-3 py-1 rounded-lg w-max mx-auto">- ${correctData.artist}</span><br><span class="text-xs text-gray-300 mt-3 font-semibold block drop-shadow-sm">Bu şarkı hangi yıl çıkmıştır?</span>`;
+                document.getElementById('lyricText').innerHTML = `🎵 <span class="text-yellow-300 font-black ${getTitleSizeClass(correctData.title)} drop-shadow-lg block max-w-full mx-auto break-words">"${correctData.title}"</span><span class="text-sm text-gray-300 font-semibold mt-1.5 block drop-shadow-md max-w-full mx-auto break-words">- ${correctData.artist}</span><span class="text-xs text-gray-400 mt-4 font-semibold block drop-shadow-sm">Bu şarkı hangi yıl çıkmıştır?</span>`;
 
                 let options = [currentCorrectAnswer];
                 
@@ -7392,8 +7438,8 @@ function trackModeJokerUsage() {
                 if(comboCount >= 5 && !activeProfile.achievements.includes('combo_master')) { checkAchievements(); }
                 if(timeTaken < 2.0 && !activeProfile.achievements.includes('speed_demon')) { checkAchievements(); }
 
-                if(currentMode !== 'artist' && currentMode !== 'fillBlank' && currentMode !== 'reverse') {
-                    document.getElementById('lyricText').innerHTML += `<br><span class="reveal-artist block text-xl text-[var(--accent)] mt-4 font-black tracking-wide drop-shadow-md neon-text text-bg-guard py-1 px-4 rounded-xl w-max mx-auto">- ${artistName}</span>`;
+                if(currentMode !== 'artist' && currentMode !== 'fillBlank' && currentMode !== 'reverse' && currentMode !== 'nextLyric' && currentMode !== 'guessYear') {
+                    document.getElementById('lyricText').innerHTML += `<span class="reveal-artist block text-xl text-[var(--accent)] mt-4 font-black tracking-wide drop-shadow-md neon-text max-w-full mx-auto break-words">- ${artistName}</span>`;
                 }
 
             } catch (err) { console.error("Cevap verisi islenirken hata:", err); } 
