@@ -1160,7 +1160,7 @@
 
 <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getDatabase, ref, push, set, get, update } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
+        import { getDatabase, ref, push, set, get, update, onValue } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCdNq7HlRH9iOa2z_RJf8bMgQjWKD797Cw",
@@ -1292,6 +1292,10 @@
         window.artistsCache = {};
         onValue(ref(db, 'artists'), (snapshot) => {
             window.artistsCache = snapshot.val() || {};
+            // Veri geç geldiyse (özellikle 1. soru), ekranda duran "Kim Söylüyor" şıklarını yama.
+            if (typeof refreshArtistOptionAvatars === 'function') refreshArtistOptionAvatars();
+        }, (err) => {
+            console.error("❌ 'artists' düğümü OKUNAMADI (muhtemelen Firebase kuralları izin vermiyor):", err.code, err.message);
         });
         window.sanitizeKey = sanitizeKey;
 
@@ -4738,6 +4742,7 @@ function sarkiVeritabaniniGenislet() {
                     spotifyAlbumArt: song.spotifyAlbumArt || null,
                     itunesPreviewUrl: song.itunesPreviewUrl || null,
                     itunesAlbumArt: song.itunesAlbumArt || null,
+                    customCoverImage: song.customCoverImage || null,
                     customPreviewAudio: song.customPreviewAudio || null
                 });
                 let mevcutIndex = songsDatabase.findIndex(mevcut => mevcut.title === s.title && mevcut.artist === s.artist);
@@ -6772,6 +6777,36 @@ const panel = document.getElementById('mainPanel');
             return (entry && entry.mainPhotoUrl) ? entry.mainPhotoUrl : null;
         }
 
+        // Admin panelinde ayarlanan kırpma/kaydırma (zoom, x, y) bilgisini döndürür (yoksa null).
+        function getArtistPhotoCrop(artistName) {
+            const entry = window.artistsCache && window.artistsCache[artKeyClient(artistName)];
+            return (entry && entry.mainPhotoCrop) ? entry.mainPhotoCrop : null;
+        }
+
+        // Firebase'deki "artists" verisi sayfa açıldıktan/soru render edildikten SONRA gelirse
+        // (ilk sorudaki normal senaryo budur), o an ekranda duran "Kim Söylüyor" şıklarını
+        // avatarsız bırakmamak için burada sonradan yamıyoruz. onValue(ref(db,'artists'), ...)
+        // callback'i içinden çağrılır.
+        function refreshArtistOptionAvatars() {
+            if (currentMode !== 'artist') return;
+            const grid = document.getElementById('optionsGrid');
+            if (!grid) return;
+            grid.querySelectorAll('.option-btn[data-artist-name]').forEach(btn => {
+                if (btn.querySelector('img')) return; // zaten avatarı var, tekrar ekleme
+                const artistName = btn.dataset.artistName;
+                const artistPhoto = getArtistPhoto(artistName);
+                if (!artistPhoto) return;
+                const artistCrop = getArtistPhotoCrop(artistName);
+                const cropZoom = (artistCrop && typeof artistCrop.zoom === 'number') ? artistCrop.zoom : 1;
+                const cropX = (artistCrop && typeof artistCrop.x === 'number') ? artistCrop.x : 50;
+                const cropY = (artistCrop && typeof artistCrop.y === 'number') ? artistCrop.y : 50;
+                const avatarEl = document.createElement('div');
+                avatarEl.className = 'w-9 h-9 rounded-full border-2 border-white/30 shadow-sm flex-shrink-0 overflow-hidden';
+                avatarEl.innerHTML = `<img src="${artistPhoto}" alt="" class="w-full h-full" style="object-fit:cover; object-position:${cropX}% ${cropY}%; transform:scale(${cropZoom}); transform-origin:center;">`;
+                btn.insertBefore(avatarEl, btn.firstChild);
+            });
+        }
+
         // Admin panelinin "Sanatçı Detaylarını Gör" ekranından girilen joker ipucu varsa, koddaki
         // sabit ipucunun yerine onu kullanır (admin panelinde artık canlı olarak düzenlenebiliyor).
         function getArtistHintOverride(artistName) {
@@ -6910,11 +6945,16 @@ const panel = document.getElementById('mainPanel');
                     const btn = document.createElement('button');
                     btn.className = 'option-btn w-full text-center p-4 rounded-xl font-bold text-lg shadow-md flex items-center justify-center gap-3';
                     const artistPhoto = getArtistPhoto(opt);
+                    const artistCrop = getArtistPhotoCrop(opt);
+                    const cropZoom = (artistCrop && typeof artistCrop.zoom === 'number') ? artistCrop.zoom : 1;
+                    const cropX = (artistCrop && typeof artistCrop.x === 'number') ? artistCrop.x : 50;
+                    const cropY = (artistCrop && typeof artistCrop.y === 'number') ? artistCrop.y : 50;
                     const avatarHtml = artistPhoto
-                        ? `<img src="${artistPhoto}" alt="" class="w-9 h-9 rounded-full object-cover border-2 border-white/30 shadow-sm flex-shrink-0">`
+                        ? `<div class="w-9 h-9 rounded-full border-2 border-white/30 shadow-sm flex-shrink-0 overflow-hidden"><img src="${artistPhoto}" alt="" class="w-full h-full" style="object-fit:cover; object-position:${cropX}% ${cropY}%; transform:scale(${cropZoom}); transform-origin:center;"></div>`
                         : '';
                     btn.innerHTML = `${avatarHtml}<span>${opt}</span> <span class="aud-pct text-amber-400 text-sm hidden drop-shadow-md"></span>`;
                     btn.dataset.isCorrect = (opt === currentCorrectAnswer) ? "true" : "false";
+                    btn.dataset.artistName = opt; // Firebase'den sanatçı fotoğrafı GEÇ gelirse şıkları sonradan güncelleyebilmek için (bkz: refreshArtistOptionAvatars).
                     btn.onclick = () => checkAnswer(btn, opt);
                     grid.appendChild(btn);
                 });
@@ -7108,12 +7148,14 @@ const panel = document.getElementById('mainPanel');
                 document.getElementById('lyricText').innerHTML = `"${finalLyric}"`;
 
                 let options = [currentCorrectAnswer];
+                let coverByTitle = { [currentCorrectAnswer]: getSongCover(correctData) };
                 let attempts = 0;
                 while(options.length < 4 && attempts < 100) {
                     let randomData = distractorPool[Math.floor(Math.random() * distractorPool.length)];
                     
                     if(!options.includes(randomData.title)) {
                         options.push(randomData.title);
+                        coverByTitle[randomData.title] = getSongCover(randomData);
                     }
                     attempts++;
                 }
@@ -7121,8 +7163,12 @@ const panel = document.getElementById('mainPanel');
 
                 options.forEach(opt => {
                     const btn = document.createElement('button');
-                    btn.className = 'option-btn w-full text-left p-4 rounded-xl font-semibold flex justify-between items-center shadow-md text-base';
-                    btn.innerHTML = `<span>${opt}</span> <span class="aud-pct text-amber-400 text-sm hidden drop-shadow-md"></span>`;
+                    btn.className = 'option-btn w-full text-left p-4 rounded-xl font-semibold flex justify-between items-center gap-3 shadow-md text-base';
+                    const coverUrl = coverByTitle[opt];
+                    const coverHtml = coverUrl
+                        ? `<div class="w-10 h-10 rounded-lg overflow-hidden border border-white/20 shadow-sm flex-shrink-0 bg-black/30"><img src="${coverUrl}" alt="" class="w-full h-full object-cover"></div>`
+                        : '';
+                    btn.innerHTML = `<span class="flex items-center gap-3 min-w-0">${coverHtml}<span class="truncate">${opt}</span></span> <span class="aud-pct text-amber-400 text-sm hidden drop-shadow-md flex-shrink-0"></span>`;
                     btn.dataset.isCorrect = (opt === currentCorrectAnswer) ? "true" : "false";
                     btn.onclick = () => checkAnswer(btn, opt);
                     grid.appendChild(btn);

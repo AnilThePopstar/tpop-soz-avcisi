@@ -1474,6 +1474,19 @@
     let adminArtistsCache = {};
     onValue(ref(db, 'artists'), (snapshot) => { adminArtistsCache = snapshot.val() || {}; });
 
+    // Kayıtlı mainPhotoCrop (zoom/x/y) değerini küçük yuvarlak avatarlara da uygulayan
+    // ortak img etiketi üreticisi. Kırpma modalındaki x/y yüzdelik mantığını
+    // (0% = sol/üst uç, 100% = sağ/alt uç, 50% = merkez) CSS object-position +
+    // transform: scale ile taklit eder.
+    function ad_avatarImgTag(photo, crop, sizeClasses, extraClasses) {
+        if (!photo) return '';
+        const zoom = crop && typeof crop.zoom === 'number' ? crop.zoom : 1;
+        const x = crop && typeof crop.x === 'number' ? crop.x : 50;
+        const y = crop && typeof crop.y === 'number' ? crop.y : 50;
+        const style = `object-fit:cover;object-position:${x}% ${y}%;transform:scale(${zoom});`;
+        return `<img src="${photo}" loading="lazy" class="${sizeClasses} ${extraClasses || ''}" style="${style}" alt="">`;
+    }
+
     // Genel amaçlı kıta yöneticisi: hem "Yeni Şarkı Ekle" formu hem "Düzenle" modalı bu fonksiyonu kullanır.
     function createCoupletManager(containerId, addBtnId, separatorBtnId) {
         const container = document.getElementById(containerId);
@@ -2601,13 +2614,16 @@ JSON formatı dışında hiçbir şey yazma.`;
         }
 
         tbody.innerHTML = rows.map((r, i) => {
-            const photo = adminArtistsCache[sanitizeKey(r.artist)]?.mainPhotoUrl || '';
+            const artistRecord = adminArtistsCache[sanitizeKey(r.artist)];
+            const photo = artistRecord?.mainPhotoUrl || '';
             return `
                 <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
                     <td class="py-3 pr-2">
+                        <div class="w-11 h-11 rounded-full overflow-hidden border border-white/10 shadow">
                         ${photo
-                            ? `<img src="${photo}" loading="lazy" class="w-11 h-11 rounded-full object-cover border border-white/10 shadow" alt="">`
-                            : `<div class="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-500"><i class="fas fa-user"></i></div>`}
+                            ? ad_avatarImgTag(photo, artistRecord?.mainPhotoCrop, 'w-full h-full')
+                            : `<div class="w-full h-full bg-white/5 flex items-center justify-center text-gray-500"><i class="fas fa-user"></i></div>`}
+                        </div>
                     </td>
                     <td class="py-3 font-bold text-white cursor-pointer hover:text-sky-300 view-artist-songs-btn" data-idx="${i}">${r.artist} <i class="fas fa-eye text-xs text-gray-500 ml-1"></i></td>
                     <td class="py-3">${artistSongCounts[r.artist] || 0}</td>
@@ -2960,9 +2976,10 @@ JSON formatı dışında hiçbir şey yazma.`;
             dropdown.style.top = (rect.bottom + 4) + 'px';
             dropdown.style.width = Math.max(rect.width, 220) + 'px';
             dropdown.innerHTML = matches.map((name, i) => {
-                const photo = adminArtistsCache[sanitizeKey(name)]?.mainPhotoUrl || '';
+                const taArtistRecord = adminArtistsCache[sanitizeKey(name)];
+                const photo = taArtistRecord?.mainPhotoUrl || '';
                 const avatarHtml = photo
-                    ? `<img src="${photo}" class="w-7 h-7 rounded-full object-cover border border-white/20 flex-shrink-0">`
+                    ? `<div class="w-7 h-7 rounded-full overflow-hidden border border-white/20 flex-shrink-0">${ad_avatarImgTag(photo, taArtistRecord?.mainPhotoCrop, 'w-full h-full')}</div>`
                     : `<div class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-gray-400 flex-shrink-0"><i class="fas fa-user"></i></div>`;
                 const count = allSongsCache.filter(([, s]) => s.artist === name).length;
                 return `<div class="ta-item flex items-center gap-2 px-3 py-2 hover:bg-white/10 cursor-pointer text-sm text-white" data-i="${i}">${avatarHtml}<span class="flex-1 truncate">${name}</span><span class="text-[10px] text-gray-500 flex-shrink-0">${count} şarkı</span></div>`;
