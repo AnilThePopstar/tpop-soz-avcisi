@@ -19,7 +19,23 @@
         .nav-link.disabled { opacity: 0.4; cursor: not-allowed; }
         .tab-page { display: none; }
         .tab-page.active { display: block; }
+/* Sanatçı Resmi Kırpma ve Odaklama */
+        .image-crop-container {
+    width: 100%; aspect-ratio: 1 / 1; /* BURASI KARE YAPTI */
+    overflow: hidden; border-radius: 1rem; position: relative;
+    background: #000; cursor: grab; /* Fareyle sürüklenebilir imleci */
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    touch-action: none; user-select: none;
+}
+.image-crop-container.ad-dragging { cursor: grabbing; }
+.image-crop-target {
+    position: absolute; top: 0; left: 0;
+    max-width: none; max-height: none; /* JS ile piksel cinsinden boyutlandırılıyor */
+    transform-origin: top left;
+    pointer-events: none; /* sürükleme container üzerinden yönetiliyor */
+}
     </style>
+
 </head>
 <body class="flex h-screen overflow-hidden">
 
@@ -330,6 +346,10 @@
                             <label class="text-xs font-bold text-gray-400 block mb-1">Ters İpucu (Reverse mod için)</label>
                             <input id="sf_reverseHint" type="text" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-400">
                         </div>
+                        <div class="md:col-span-2 flex items-center gap-3">
+                            <button type="button" id="sf_aiFill" class="bg-violet-600 hover:bg-violet-500 text-white font-black px-5 py-2.5 rounded-xl text-sm transition-colors"><i class="fas fa-wand-magic-sparkles mr-1"></i> ✨ AI ile Doldur</button>
+                            <span id="sf_aiFillStatus" class="text-xs font-bold"></span>
+                        </div>
                         <div>
                             <label class="text-xs font-bold text-gray-400 block mb-1">Cover ID</label>
                             <input id="sf_coverId" type="text" placeholder="Örn: makas_2010" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-pink-400">
@@ -386,6 +406,8 @@
                                 <option value="yearDesc">📅 Çıkış Yılı (Yeni→Eski)</option>
                                 <option value="yearAsc">📅 Çıkış Yılı (Eski→Yeni)</option>
                                 <option value="releaseDate">🎂 Çıkış Tarihi (1 Oca→31 Ara)</option>
+                                <option value="versesDesc">📖 Kıta Sayısı (Çok→Az)</option>
+                                <option value="versesAsc">📖 Kıta Sayısı (Az→Çok)</option>
                             </select>
                         </div>
                     </div>
@@ -393,15 +415,16 @@
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="text-gray-400 text-xs uppercase tracking-wider border-b border-white/10">
+                                    <th class="pb-3 font-bold w-14"></th>
                                     <th class="pb-3 font-bold">Şarkı</th>
                                     <th class="pb-3 font-bold">Sanatçı</th>
                                     <th class="pb-3 font-bold">Yıl</th>
-                                    <th class="pb-3 font-bold">Kıta</th>
+                                    <th class="pb-3 font-bold text-center">Kıta</th>
                                     <th class="pb-3 font-bold"></th>
                                 </tr>
                             </thead>
                             <tbody id="sf_tableBody" class="text-sm">
-                                <tr><td colspan="5" class="py-6 text-center text-gray-400">Veri bekleniyor...</td></tr>
+                                <tr><td colspan="6" class="py-6 text-center text-gray-400">Veri bekleniyor...</td></tr>
                             </tbody>
                         </table>
                         <div class="text-center mt-3">
@@ -422,6 +445,15 @@
                     </details>
                 </div>
 
+                <div class="lg:col-span-2 glass-panel rounded-2xl p-5 border-2 border-teal-500/40">
+                    <h3 class="text-lg font-black text-white mb-1"><i class="fas fa-sync-alt text-teal-400 mr-2"></i> Tüm Şarkıların Verilerini Güncelle</h3>
+                    <p class="text-xs text-gray-400 mb-3">Veritabanındaki tüm şarkılar için Spotify / iTunes / Last.fm'den kapak, künye ve 30sn önizleme bilgisini yeniden çeker. Yeni bir alan eklediğimizde tüm şarkıları tek tek "Spotify'dan Çek" ile güncellemek yerine bu butonu kullanabilirsin. Hiç verisi çekilmemiş şarkılara da otomatik olarak aktarılır. Çok sayıda şarkı olduğu için bu işlem uzun sürebilir.</p>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <button id="bulkUpdateSongs_btn" class="bg-teal-600 hover:bg-teal-500 text-white font-black px-6 py-3 rounded-xl transition-colors"><i class="fas fa-cloud-download-alt mr-2"></i> Tüm Şarkıları Güncelle</button>
+                        <span id="bulkUpdateSongs_status" class="text-sm font-bold"></span>
+                    </div>
+                </div>
+
                 <div class="lg:col-span-2 glass-panel rounded-2xl p-5">
                     <details>
                         <summary class="cursor-pointer text-lg font-black text-white"><i class="fab fa-spotify text-emerald-400 mr-2"></i> Spotify / iTunes / Last.fm API Ayarları (Kapak & 30sn Önizleme İçin)</summary>
@@ -429,11 +461,13 @@
                             <b class="text-amber-400">⚠️ Güvenlik notu:</b> Bu bilgiler sadece bu tarayıcıda (localStorage) saklanır, Firebase'e veya başka bir yere gönderilmez. Yine de admin.html dosyasını başkalarıyla paylaşırsan bu alanları boş bırak.
                             Spotify Developer Dashboard'dan (developer.spotify.com) ücretsiz bir uygulama oluşturup Client ID/Secret'ını buraya yapıştırabilirsin. Kapak resmi ve künye bilgisi Spotify'dan, 30sn ses önizlemesi ise (Spotify çoğu şarkıda kaldırdığı için) otomatik olarak iTunes Search API'den (ek anahtar gerekmez) çekilir.
                             <br><br><b class="text-amber-400">Last.fm (isteğe bağlı, eksik bilgi tamamlama):</b> Spotify ve iTunes'ta bulunamayan albüm adı/kapağı/etiket bilgisi için son çare olarak denenir. last.fm/api/account/create adresinden ücretsiz bir API anahtarı alabilirsin.
+                            <br><br><b class="text-violet-400">Gemini (isteğe bağlı, AI özellikleri için):</b> "✨ AI ile Doldur" butonu ve sağ alttaki "Kraliçe Production AI Asistanı" için gerekir. aistudio.google.com/apikey adresinden ücretsiz bir API anahtarı alabilirsin.
                         </p>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <input id="spotify_clientId" type="text" placeholder="Spotify Client ID" class="bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-400">
                             <input id="spotify_clientSecret" type="password" placeholder="Spotify Client Secret" class="bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-400">
                             <input id="lastfm_apiKey" type="text" placeholder="Last.fm API Key (isteğe bağlı)" class="md:col-span-2 bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-400">
+                            <input id="gemini_apiKey" type="password" placeholder="Gemini API Key (AI Doldur / AI Asistan için)" class="md:col-span-2 bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-400">
                         </div>
                         <div class="mt-3 flex items-center gap-3">
                             <button id="spotify_save" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2 rounded-lg text-sm">Kaydet</button>
@@ -453,44 +487,143 @@
                         <span id="migrateArtistHints_status" class="text-sm font-bold"></span>
                     </div>
                 </div>
+                <div class="glass-panel rounded-2xl p-5 border-2 border-teal-500/40">
+                    <h3 class="text-lg font-black text-white mb-1"><i class="fas fa-sync-alt text-teal-400 mr-2"></i> Tüm Sanatçıların Verilerini Güncelle</h3>
+                    <p class="text-xs text-gray-400 mb-3">Veritabanındaki tüm sanatçılar için Spotify / iTunes / Last.fm'den fotoğraf, etiket ve benzer sanatçı bilgisi çeker. <b class="text-emerald-400">Mevcut fotoğraf/etiket/benzer sanatçılar silinmez</b>, sadece yeni bulunanlar eklenir. Hiç verisi olmayan sanatçılarda ilk bulunan fotoğraf otomatik ana resim yapılır. Çok sayıda sanatçı olduğu için bu işlem uzun sürebilir.</p>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <button id="bulkUpdateArtists_btn" class="bg-teal-600 hover:bg-teal-500 text-white font-black px-6 py-3 rounded-xl transition-colors"><i class="fas fa-cloud-download-alt mr-2"></i> Tüm Sanatçıları Güncelle</button>
+                        <span id="bulkUpdateArtists_status" class="text-sm font-bold"></span>
+                    </div>
+                </div>
                 <div class="glass-panel rounded-2xl flex flex-col">
                     <div class="p-5 border-b border-white/10 flex justify-between items-center flex-wrap gap-2">
                         <h3 class="text-lg font-black text-white"><i class="fas fa-chart-bar text-sky-400 mr-2"></i> Sanatçı Bazlı İstatistikler</h3>
-                        <select id="artist_sort" class="bg-black/40 border border-white/20 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-sky-400">
-                            <option value="alpha">🔤 Alfabetik</option>
-                            <option value="songCount">🎵 En Çok Şarkısı Olan</option>
-                            <option value="views">👁️ En Çok Görülen</option>
-                        </select>
+                        <div class="flex gap-2">
+                            <input id="artist_search" type="text" placeholder="🔎 Sanatçı ara..." class="bg-black/40 border border-white/20 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-sky-400">
+                            <select id="artist_sort" class="bg-black/40 border border-white/20 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-sky-400">
+                                <option value="alpha">🔤 Alfabetik</option>
+                                <option value="songCount">🎵 En Çok Şarkısı Olan</option>
+                                <option value="views">👁️ En Çok Görülen</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="overflow-x-auto p-5">
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="text-gray-400 text-xs uppercase tracking-wider border-b border-white/10">
+                                    <th class="pb-3 font-bold w-14"></th>
                                     <th class="pb-3 font-bold">Sanatçı</th>
                                     <th class="pb-3 font-bold">Şarkı Sayısı</th>
                                     <th class="pb-3 font-bold">Görülme</th>
                                     <th class="pb-3 font-bold">Doğru Bilinme</th>
                                     <th class="pb-3 font-bold">En Çok Kullanılan Joker</th>
-                                    <th class="pb-3 font-bold">İpucu</th>
+                                    <th class="pb-3 font-bold">İşlemler</th>
                                 </tr>
                             </thead>
                             <tbody id="artistTableBody" class="text-sm">
-                                <tr><td colspan="6" class="py-6 text-center text-gray-400">Veri bekleniyor...</td></tr>
+                                <tr><td colspan="7" class="py-6 text-center text-gray-400">Veri bekleniyor...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <div class="glass-panel rounded-2xl p-5">
-                    <h3 class="text-lg font-black text-white mb-1"><i class="fas fa-lightbulb text-amber-400 mr-2"></i> Sanatçı İpucu Düzenle</h3>
-                    <p class="text-xs text-gray-400 mb-4">Bir sanatçı adı seç (yukarıdaki tablodan "Düzenle" diyerek de gelebilirsin), ipucunu yaz ve kaydet.</p>
+                <div class="glass-panel rounded-2xl p-5 border-2 border-teal-500/40">
+                    <h3 class="text-lg font-black text-white mb-1"><i class="fas fa-user-circle text-teal-400 mr-2"></i> Sanatçı Detayları</h3>
+                    <p class="text-xs text-gray-400 mb-4">Fotoğraf galerisi, ana profil resmi, biyografi, Last.fm etiketleri, benzer sanatçılar ve joker ipucunu tek ekrandan yönet. Bir sanatçı adı yaz (yukarıdaki tablodan sanatçı adına tıklayarak da gelebilirsin).</p>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                        <input id="ah_artist" type="text" placeholder="Sanatçı adı" class="md:col-span-1 bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                        <input id="ah_hint" type="text" placeholder="İpucu metni" class="md:col-span-2 bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                        <input id="ad_artistInput" type="text" placeholder="Sanatçı adı" class="md:col-span-2 bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-teal-400">
+                        <button id="ad_openBtn" class="bg-teal-600 hover:bg-teal-500 text-white font-black px-6 py-3 rounded-xl transition-colors"><i class="fas fa-eye mr-2"></i> Sanatçı Detaylarını Gör</button>
                     </div>
-                    <div class="mt-4 flex items-center gap-3">
-                        <button id="ah_save" class="bg-amber-500 hover:bg-amber-400 text-black font-black px-6 py-3 rounded-xl transition-colors"><i class="fas fa-save mr-2"></i> İpucunu Kaydet</button>
-                        <span id="ah_status" class="text-sm font-bold"></span>
+                </div>
+            </div>
+
+            <!-- ================= SANATÇI DETAYLARI MODALI ================= -->
+            <div id="artistDetailModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
+                <div class="glass-panel rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 border-2 border-teal-500/40 shadow-[0_0_60px_rgba(20,184,166,0.25)]">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-black text-white"><i class="fas fa-user-circle text-teal-400 mr-2"></i> Sanatçı Detayları: <span id="ad_artistName" class="text-teal-300"></span></h3>
+                        <button id="ad_close" class="text-gray-400 hover:text-white text-xl"><i class="fas fa-times"></i></button>
+                    </div>
+
+                    <div class="flex items-center gap-3 mb-4 flex-wrap">
+                        <button id="ad_fetchPhotos" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-lg text-sm"><i class="fab fa-spotify mr-1"></i> Fotoğrafları / Bilgileri Getir</button>
+                        <span id="ad_fetchStatus" class="text-xs font-bold"></span>
+                    </div>
+
+                    <!-- TAHRİBATSIZ GÖRSEL DÜZENLEME ALANI -->
+                    <div class="bg-black/30 p-4 rounded-xl border border-white/10 mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="image-crop-container shadow-2xl" id="ad_cropContainer">
+                            <img id="ad_mainPhotoPreview" src="" class="image-crop-target hidden">
+                            <div id="ad_mainPhotoEmpty" class="w-full h-full flex items-center justify-center text-gray-500 text-xs text-center px-4">Ana profil resmi seçilmedi</div>
+                        </div>
+                        
+                        <div class="space-y-3 flex flex-col justify-center">
+                            <p class="text-[10px] text-teal-300 font-bold mb-1"><i class="fas fa-crop-alt"></i> Görseli Hizala (Kalite Bozulmaz)</p>
+                            <p class="text-[10px] text-gray-500 -mt-2 mb-1"><i class="fas fa-arrows-alt"></i> Resmi fareyle sürükle · fare tekerleğiyle yakınlaştır</p>
+                            <div>
+                                <label class="text-[10px] text-gray-400 flex justify-between"><span>Yakınlaştır (Zoom)</span> <span id="val_zoom">1.0x</span></label>
+                                <input type="range" id="ad_zoom" min="1" max="3" step="0.05" value="1" class="w-full accent-teal-500">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-400 flex justify-between"><span>Sol / Sağ (X Ekseni)</span> <span id="val_x">50%</span></label>
+                                <input type="range" id="ad_posX" min="0" max="100" value="50" class="w-full accent-teal-500">
+                            </div>
+                            <div>
+                                <label class="text-[10px] text-gray-400 flex justify-between"><span>Yukarı / Aşağı (Y Ekseni)</span> <span id="val_y">50%</span></label>
+                                <input type="range" id="ad_posY" min="0" max="100" value="50" class="w-full accent-teal-500">
+                            </div>
+                            <div class="pt-2 border-t border-white/10 flex items-center gap-2 flex-wrap">
+                                <label class="bg-teal-600/80 hover:bg-teal-500 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg cursor-pointer transition inline-block">
+                                    <i class="fas fa-upload mr-1"></i> Bilgisayardan Yükle
+                                    <input id="ad_localUpload" type="file" accept="image/*" class="hidden">
+                                </label>
+                                <span id="ad_localUploadStatus" class="text-[10px] font-bold"></span>
+                            </div>
+                            <div class="pt-2 border-t border-white/10">
+                                <label class="text-[10px] text-gray-400 block mb-1">Veya URL ile ekle</label>
+                                <div class="flex gap-2">
+                                    <input id="ad_urlInput" type="text" placeholder="https://..." class="flex-1 bg-black/40 border border-white/20 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-teal-400">
+                                    <button id="ad_addUrl" type="button" class="bg-teal-600/70 hover:bg-teal-500 text-white text-xs font-bold px-3 rounded-lg">Ekle</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="ad_photoGrid" class="grid grid-cols-3 md:grid-cols-5 gap-2 mb-2"></div>
+                    <button id="ad_showMorePhotos" class="hidden text-xs text-teal-300 font-bold mb-4 hover:underline">Devamını Gör (<span id="ad_morePhotoCount"></span> daha)</button>
+                    <p id="ad_noPhotosMsg" class="hidden text-xs text-gray-500 mb-4">Henüz fotoğraf yok. Yukarıdaki "Fotoğrafları / Bilgileri Getir" butonunu dene.</p>
+
+                    <div class="border-t border-white/10 pt-4 mt-2">
+                        <label class="text-xs font-bold text-gray-400 block mb-1">Biyografi</label>
+                        <textarea id="ad_bio" rows="4" placeholder="Sanatçı biyografisi..." class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-teal-400"></textarea>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="text-xs font-bold text-gray-400 block mb-1"><i class="fas fa-lightbulb text-amber-400 mr-1"></i> Joker İpucu ("Kim Söylüyor" modunda İpucu jokeri için)</label>
+                        <input id="ad_hint" type="text" placeholder="Bu sanatçı hakkında ipucu metni..." class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400">
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="text-xs font-bold text-gray-400 block mb-1">Last.fm Etiketleri</label>
+                        <div id="ad_tagsList" class="flex flex-wrap gap-2 mb-2"></div>
+                        <div class="flex gap-2">
+                            <input id="ad_newTag" type="text" placeholder="Yeni etiket ekle..." class="flex-1 bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-teal-400">
+                            <button id="ad_addTag" class="bg-teal-600/70 hover:bg-teal-500 text-white text-xs font-bold px-4 rounded-lg">Ekle</button>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <label class="text-xs font-bold text-gray-400 block mb-1">Benzer Sanatçılar</label>
+                        <div id="ad_similarList" class="flex flex-wrap gap-2 mb-2"></div>
+                        <div class="flex gap-2">
+                            <input id="ad_newSimilar" type="text" placeholder="Benzer sanatçı ekle..." class="flex-1 bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-teal-400">
+                            <button id="ad_addSimilar" class="bg-teal-600/70 hover:bg-teal-500 text-white text-xs font-bold px-4 rounded-lg">Ekle</button>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 flex items-center gap-3">
+                        <button id="ad_save" class="bg-teal-500 hover:bg-teal-400 text-black font-black px-6 py-3 rounded-xl transition-colors"><i class="fas fa-save mr-2"></i> Kaydet</button>
+                        <span id="ad_status" class="text-sm font-bold"></span>
                     </div>
                 </div>
             </div>
@@ -635,100 +768,143 @@
 
     <!-- ================= ŞARKI DÜZENLE MODALI ================= -->
     <div id="editSongModal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-[200] hidden flex items-center justify-center p-4">
-        <div class="glass-panel rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 border-2 border-amber-500/40 shadow-[0_0_60px_rgba(245,158,11,0.25)]">
+        <div class="glass-panel rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto p-6 border-2 border-amber-500/40 shadow-[0_0_60px_rgba(245,158,11,0.25)]">
             <div class="flex justify-between items-center mb-4">
                 <h3 id="es_formTitle" class="text-lg font-black text-white"><i class="fas fa-pen text-amber-400 mr-2"></i> Şarkıyı Düzenle</h3>
                 <button id="es_close" class="text-gray-400 hover:text-white text-xl"><i class="fas fa-times"></i></button>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="text-xs font-bold text-gray-400 block mb-1">Şarkı Adı *</label>
-                    <input id="es_title" type="text" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-400 block mb-1">Sanatçı *</label>
-                    <input id="es_artist" type="text" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-400 block mb-1">Yıl (Yıl Tahmini modu için)</label>
-                    <input id="es_year" type="number" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-400 block mb-1">Emoji</label>
-                    <input id="es_emoji" type="text" maxlength="4" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="text-xs font-bold text-gray-400 block mb-1">İpucu (Klasik mod için)</label>
-                    <input id="es_hint" type="text" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="text-xs font-bold text-gray-400 block mb-1">Ters İpucu (Reverse mod için)</label>
-                    <input id="es_reverseHint" type="text" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-400 block mb-1">Yabancı Misafir Şarkısı mı?</label>
-                    <div class="flex gap-2">
-                        <button type="button" id="es_fg_no" class="es-fg-btn flex-1 py-2 rounded-lg font-bold text-sm bg-emerald-600 text-white">Hayır</button>
-                        <button type="button" id="es_fg_yes" class="es-fg-btn flex-1 py-2 rounded-lg font-bold text-sm bg-black/40 text-gray-300 border border-white/20">Evet</button>
+            <!-- İKİ SÜTUNLU YAPI BAŞLANGICI -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                <!-- SOL SÜTUN: Bilgiler ve Kapak -->
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 block mb-1">Şarkı Adı *</label>
+                            <input id="es_title" type="text" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 block mb-1">Sanatçı *</label>
+                            <input id="es_artist" type="text" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                        </div>
+                    </div>
+
+                    <div class="bg-black/20 p-3 rounded-xl border border-white/10 flex gap-4 items-center">
+                        <img id="es_coverPreview" src="" class="hidden w-20 h-20 rounded-xl object-cover border-2 border-amber-400 shadow-lg flex-shrink-0">
+                        <div class="flex-1">
+                            <label class="text-xs font-bold text-gray-400 block mb-1"><i class="fas fa-image mr-1"></i> Şarkı Kapağı</label>
+                            <p id="es_coverStatus" class="text-[10px] text-gray-500 mb-2">Otomatik kapak kullanılıyor.</p>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <label class="bg-amber-600/80 hover:bg-amber-500 text-black text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition">
+                                    <i class="fas fa-upload"></i> Yükle
+                                    <input id="es_coverUpload" type="file" accept="image/*" class="hidden">
+                                </label>
+                                <button id="es_removeCover" type="button" class="hidden bg-red-600/80 hover:bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition"><i class="fas fa-trash"></i></button>
+                                <span id="es_coverUploadStatus" class="text-xs font-bold"></span>
+                            </div>
+                            <div class="flex gap-2 mt-2">
+                                <input id="es_coverUrlInput" type="text" placeholder="URL ile kapak ekle: https://..." class="flex-1 bg-black/40 border border-white/20 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-amber-400">
+                                <button id="es_addCoverUrl" type="button" class="bg-amber-600/70 hover:bg-amber-500 text-black text-xs font-bold px-3 rounded-lg">Ekle</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 block mb-1">Yıl</label>
+                            <input id="es_year" type="number" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 block mb-1">Emoji</label>
+                            <input id="es_emoji" type="text" maxlength="4" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-xl focus:outline-none focus:border-amber-400">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 block mb-1">İpucu (Klasik mod)</label>
+                        <input id="es_hint" type="text" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 block mb-1">Ters İpucu (Reverse mod)</label>
+                        <input id="es_reverseHint" type="text" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 block mb-1">Yabancı Misafir mi?</label>
+                            <div class="flex gap-1">
+                                <button type="button" id="es_fg_no" class="es-fg-btn flex-1 py-1.5 rounded-lg font-bold text-xs bg-emerald-600 text-white">Hayır</button>
+                                <button type="button" id="es_fg_yes" class="es-fg-btn flex-1 py-1.5 rounded-lg font-bold text-xs bg-black/40 text-gray-300 border border-white/20">Evet</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 block mb-1">Dil</label>
+                            <select id="es_language" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-1.5 text-white text-xs focus:outline-none focus:border-amber-400">
+                                <option value="tr">Türkçe</option>
+                                <option value="en">İngilizce</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 block mb-1">Cover ID</label>
+                            <input id="es_coverId" type="text" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-400">
+                        </div>
+                        <div>
+                            <label class="text-xs font-bold text-gray-400 block mb-1">Çıkış Türü</label>
+                            <select id="es_relDateType" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-xs focus:outline-none focus:border-amber-400">
+                                <option value="album">Albüm Çıkış Tarihi</option>
+                                <option value="clip">Klip Yayın Tarihi</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="text-xs font-bold text-gray-400 block mb-1">Çıkış Tarihi (Gün / Ay / Yıl)</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <input id="es_relDay" type="number" min="1" max="31" placeholder="Gün" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                            <input id="es_relMonth" type="number" min="1" max="12" placeholder="Ay" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                            <input id="es_relYear" type="number" placeholder="Yıl" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+                        </div>
+                    </div>
+
+                    <div class="border-t border-white/10 pt-3">
+                        <label class="text-xs font-bold text-gray-400 block mb-1"><i class="fas fa-volume-up mr-1"></i> Ses Önizlemesi</label>
+                        <p id="es_previewStatus" class="text-[10px] text-gray-500 mb-2">Henüz ses önizlemesi yok.</p>
+                        <div class="flex items-center gap-2">
+                            <label class="bg-sky-600/80 hover:bg-sky-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer">
+                                <i class="fas fa-music"></i> Kendi Sesini Yükle
+                                <input id="es_audioUpload" type="file" accept="audio/*" class="hidden">
+                            </label>
+                            <button id="es_removeAudio" type="button" class="hidden bg-red-600/80 hover:bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg"><i class="fas fa-trash"></i></button>
+                            <span id="es_audioStatus" class="text-[10px] font-bold"></span>
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-400 block mb-1">Dil</label>
-                    <select id="es_language" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                        <option value="tr">Türkçe</option>
-                        <option value="en">İngilizce</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-400 block mb-1">Cover ID</label>
-                    <input id="es_coverId" type="text" placeholder="Örn: makas_2010" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="text-xs font-bold text-gray-400 block mb-1">Bu tarih neyin çıkış tarihi?</label>
-                    <select id="es_relDateType" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                        <option value="album">Albüm Çıkış Tarihi</option>
-                        <option value="clip">Klip Yayın Tarihi</option>
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="text-xs font-bold text-gray-400 block mb-1">Çıkış Tarihi (Gün / Ay / Yıl) — "Günün Şarkısı" için</label>
-                    <div class="grid grid-cols-3 gap-2">
-                        <input id="es_relDay" type="number" min="1" max="31" placeholder="Gün" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                        <input id="es_relMonth" type="number" min="1" max="12" placeholder="Ay" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
-                        <input id="es_relYear" type="number" placeholder="Yıl (boşsa şarkının yılı kullanılır)" class="w-full bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-amber-400">
+
+                <!-- SAĞ SÜTUN: Şarkı Sözleri (Artık taşmayacak) -->
+                <div class="flex flex-col h-full bg-black/20 p-4 rounded-xl border border-white/10">
+                    <div class="flex justify-between items-center mb-3 border-b border-white/10 pb-2">
+                        <label class="text-sm font-bold text-amber-400"><i class="fas fa-align-left mr-1"></i> Sözler (Kıtalar)</label>
+                        <div class="flex gap-2">
+                            <button id="es_addCouplet" class="text-[10px] bg-sky-500/20 text-sky-300 border border-sky-500/50 px-2 py-1 rounded-lg font-bold hover:bg-sky-500/40">+ Kıta</button>
+                            <button id="es_addSeparator" type="button" class="text-[10px] bg-pink-500/20 text-pink-300 border border-pink-500/50 px-2 py-1 rounded-lg font-bold hover:bg-pink-500/40">- Ayraç</button>
+                        </div>
                     </div>
-                    <p class="text-[11px] text-gray-500 mt-1">Buraya elle bir gün/ay girersen, "Spotify'dan Çek" bunu asla değiştirmez (sadece boşsa doldurur).</p>
+                    <div id="es_couplets" class="flex-1 space-y-2 overflow-y-auto pr-2 min-h-[300px]"></div>
                 </div>
-                <div class="md:col-span-2 border-t border-white/10 pt-4">
-                    <label class="text-xs font-bold text-gray-400 block mb-1"><i class="fas fa-volume-up mr-1"></i> Ses Önizlemesi</label>
-                    <p id="es_previewStatus" class="text-xs text-gray-500 mb-2">Henüz ses önizlemesi yok.</p>
-                    <div class="flex items-center gap-3">
-                        <label class="bg-sky-600/80 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer">
-                            <i class="fas fa-upload mr-1"></i> Kendi Ses Dosyanı Yükle
-                            <input id="es_audioUpload" type="file" accept="audio/*" class="hidden">
-                        </label>
-                        <button id="es_removeAudio" type="button" class="hidden bg-red-600/80 hover:bg-red-500 text-white text-xs font-bold px-4 py-2 rounded-lg">Önizlemeyi Kaldır</button>
-                        <span id="es_audioStatus" class="text-xs font-bold"></span>
-                    </div>
-                </div>
+
             </div>
 
-            <div class="mt-5">
-                <div class="flex justify-between items-center mb-2">
-                    <label class="text-xs font-bold text-gray-400">Sözler (Kıtalar) *</label>
-                    <div class="flex gap-2">
-                        <button id="es_addCouplet" class="text-xs bg-sky-500/20 text-sky-300 border border-sky-500/50 px-3 py-1 rounded-lg font-bold hover:bg-sky-500/40">+ Kıta Ekle</button>
-                        <button id="es_addSeparator" type="button" class="text-xs bg-amber-500/20 text-amber-300 border border-amber-500/50 px-3 py-1 rounded-lg font-bold hover:bg-amber-500/40" title="Müzik arası / sözler arasındaki kopukluğu işaretler">🎶 Ayraç Ekle (-)</button>
-                    </div>
-                </div>
-                <div id="es_couplets" class="space-y-2"></div>
-            </div>
-
-            <div class="mt-5 flex items-center gap-3">
-                <button id="es_save" class="bg-amber-500 hover:bg-amber-400 text-black font-black px-6 py-3 rounded-xl transition-colors"><i class="fas fa-save mr-2"></i> Değişiklikleri Kaydet</button>
-                <button id="es_cancel" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-5 py-3 rounded-xl transition-colors">Vazgeç</button>
+            <!-- TAM GENİŞLİK KAYDET BUTONU -->
+            <div class="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
                 <span id="es_status" class="text-sm font-bold"></span>
+                <div class="flex gap-3 w-full md:w-auto">
+                    <button id="es_cancel" class="flex-1 md:flex-none bg-slate-700 hover:bg-slate-600 text-white font-bold px-6 py-3 rounded-xl transition-colors">Vazgeç</button>
+                    <button id="es_save" class="flex-1 md:flex-none bg-amber-500 hover:bg-amber-400 text-black font-black px-8 py-3 rounded-xl transition-colors shadow-[0_0_15px_rgba(245,158,11,0.4)]"><i class="fas fa-save mr-2"></i> Değişiklikleri Kaydet</button>
+                </div>
             </div>
         </div>
     </div>
@@ -796,6 +972,22 @@
                 </button>
                 <p id="pd_removePhotoStatus" class="text-xs mt-2 text-center"></p>
             </div>
+        </div>
+    </div>
+
+    <!-- ================= KRALİÇE PRODUCTION AI ASİSTANI (Chatbox) ================= -->
+    <button id="kpChatToggle" class="fixed bottom-5 right-5 z-[250] bg-gradient-to-br from-violet-600 to-fuchsia-600 hover:scale-105 transition-transform text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center text-2xl" title="Kraliçe Production AI Asistanı">
+        <i class="fas fa-crown"></i>
+    </button>
+    <div id="kpChatPanel" class="hidden fixed bottom-24 right-5 z-[250] w-[92vw] max-w-sm h-[70vh] max-h-[560px] bg-black/95 border border-violet-500/40 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-md">
+        <div class="flex justify-between items-center px-4 py-3 border-b border-white/10 bg-gradient-to-r from-violet-600/30 to-fuchsia-600/30 flex-shrink-0">
+            <div class="text-sm font-black text-white"><i class="fas fa-crown text-amber-400 mr-1"></i> Kraliçe Production AI Asistanı</div>
+            <button id="kpChatClose" class="text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="kpChatMessages" class="flex-1 overflow-y-auto p-3 space-y-2 text-sm"></div>
+        <div class="p-3 border-t border-white/10 flex gap-2 flex-shrink-0">
+            <input id="kpChatInput" type="text" placeholder="Bir soru sor... (örn: Gülşen'in kaç şarkısı var?)" class="flex-1 bg-black/40 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-violet-400">
+            <button id="kpChatSend" class="bg-violet-600 hover:bg-violet-500 text-white w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-paper-plane"></i></button>
         </div>
     </div>
 
@@ -1279,6 +1471,8 @@
 
     // ---------- Şarkı Veritabanı (kıta ekle/sil + gönder + liste + arama + düzenleme) ----------
     let allSongsCache = [];
+    let adminArtistsCache = {};
+    onValue(ref(db, 'artists'), (snapshot) => { adminArtistsCache = snapshot.val() || {}; });
 
     // Genel amaçlı kıta yöneticisi: hem "Yeni Şarkı Ekle" formu hem "Düzenle" modalı bu fonksiyonu kullanır.
     function createCoupletManager(containerId, addBtnId, separatorBtnId) {
@@ -1348,6 +1542,20 @@
                         const after = ta.value.slice(cursorPos);
                         ta.value = before;
                         addBox(after, false, wrapper);
+                    } else if (e.key === 'Backspace' && e.shiftKey) {
+                        if (ta.selectionStart === 0 && ta.selectionEnd === 0) {
+                            e.preventDefault();
+                            const prevWrapper = wrapper.previousElementSibling;
+                            if (!prevWrapper) return;
+                            const prevTa = prevWrapper.querySelector('.couplet-input');
+                            if (!prevTa || prevTa.classList.contains('hidden')) return; // ayraçla birleştirme yok
+                            const mergePos = prevTa.value.length;
+                            prevTa.value = prevTa.value + (prevTa.value && ta.value ? '\n' : '') + ta.value;
+                            wrapper.remove();
+                            prevTa.focus();
+                            const caretPos = mergePos + (prevTa.value.length > mergePos && mergePos > 0 ? 1 : 0);
+                            prevTa.setSelectionRange(caretPos, caretPos);
+                        }
                     }
                 });
             }
@@ -1382,6 +1590,96 @@
     }
 
     const addFormCouplets = createCoupletManager('sf_couplets', 'sf_addCouplet', 'sf_addSeparator');
+
+// ==================== GEMINI: Tek Tuşla AI Doldurma ====================
+    // API anahtarın "gemini-3.1-flash-lite" modelini destekliyor, bunu kullanacağız.
+    const GEMINI_MODEL = 'gemini-3.1-flash-lite';
+
+    async function geminiIstekGonder(prompt) {
+        const apiKey = localStorage.getItem('kp_gemini_key');
+        if (!apiKey) throw new Error('Gemini API anahtarı girilmemiş.');
+        
+        // URL'yi "models/" ile başlatmıyoruz, çünkü kodda zaten /models/ ifadesi var.
+        const url = `https://generativelanguage.googleapis.com/v1/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+        
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.7 } 
+            })
+        });
+
+        if (!resp.ok) {
+            const errData = await resp.json().catch(() => ({ error: { message: 'Bilinmeyen hata' } }));
+            throw new Error(`API Hatası (${resp.status}): ${errData.error?.message || 'Bağlantı hatası'}`);
+        }
+        
+        const data = await resp.json();
+        const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+        if (!text) throw new Error('Gemini boş yanıt döndürdü.');
+        return text;
+    }
+
+    function geminiJsonAyikla(text) {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("Yanıt JSON formatında değil.");
+        return JSON.parse(jsonMatch[0]);
+    }
+
+    document.getElementById('sf_aiFill').addEventListener('click', async () => {
+        const btn = document.getElementById('sf_aiFill');
+        const statusEl = document.getElementById('sf_aiFillStatus');
+        const title = document.getElementById('sf_title').value.trim();
+        const artist = document.getElementById('sf_artist').value.trim();
+        const emojiEl = document.getElementById('sf_emoji');
+        const hintEl = document.getElementById('sf_hint');
+        const reverseHintEl = document.getElementById('sf_reverseHint');
+        const lyrics = addFormCouplets.getLyrics();
+
+        if (!title || !artist) {
+            statusEl.className = 'text-xs font-bold text-red-400';
+            statusEl.innerText = '⚠️ Önce şarkı adı ve sanatçı gir.';
+            return;
+        }
+
+        const orig = btn.innerHTML;
+        btn.disabled = true; 
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Düşünüyor...';
+        statusEl.className = 'text-xs font-bold text-sky-300';
+        statusEl.innerText = 'Gemini\'den yanıt bekleniyor...';
+
+        const lyricsText = lyrics.length ? lyrics.map(l => l.replace(/<br>/g, ' / ')).join('\n---\n') : '(söz girilmemiş)';
+
+        const prompt = `Sen bir Türkçe pop şarkı yarışması asistanısın. Şu şarkı için içerik üret: "${title}" - "${artist}". 
+Sözler: ${lyricsText}.
+JSON formatında şu 3 alanı doldur:
+1. "emoji": Şarkıyı temsil eden tek emoji.
+2. "hint": Şarkı adını söylemeden, o şarkıyı çağrıştıran kısa, esprili/bilmece gibi tek cümlelik ipucu.
+3. "reverseHint": Şarkının girişindeki duyguyu veya sahneyi anlatan, şarkı sözünü direkt alıntılamadan tarif eden tek cümlelik ipucu.
+JSON formatı dışında hiçbir şey yazma.`;
+
+        try {
+            const raw = await geminiIstekGonder(prompt);
+            const parsed = geminiJsonAyikla(raw);
+
+            if (!emojiEl.value.trim() && parsed.emoji) emojiEl.value = parsed.emoji;
+            if (!hintEl.value.trim() && parsed.hint) hintEl.value = parsed.hint;
+            if (!reverseHintEl.value.trim() && parsed.reverseHint) reverseHintEl.value = parsed.reverseHint;
+
+            statusEl.className = 'text-xs font-bold text-emerald-400';
+            statusEl.innerText = '✅ Başarıyla dolduruldu!';
+        } catch (err) {
+            console.error('❌ Hata:', err);
+            statusEl.className = 'text-xs font-bold text-red-400';
+            statusEl.innerText = '❌ Hata: ' + err.message;
+        } finally {
+            btn.disabled = false; 
+            btn.innerHTML = orig;
+        }
+    });
+    // ==================== /GEMINI: Tek Tuşla AI Doldurma ====================
 
     // ---- Yabancı Misafir toggle'ları (Evet/Hayır, varsayılan Hayır) ----
     let sf_isForeignGuest = false;
@@ -1605,6 +1903,15 @@
         else if (s.itunesPreviewUrl) { previewEl.innerHTML = '🍎 iTunes önizlemesi var.'; removeBtn.classList.add('hidden'); }
         else { previewEl.innerHTML = 'Henüz ses önizlemesi yok. "Spotify\'dan Çek" dene veya kendi dosyanı yükle.'; removeBtn.classList.add('hidden'); }
 
+        const coverStatusEl = document.getElementById('es_coverStatus');
+        const coverPreviewEl = document.getElementById('es_coverPreview');
+        const coverRemoveBtn = document.getElementById('es_removeCover');
+        document.getElementById('es_coverUploadStatus').innerText = '';
+        const currentCoverUrl = s.customCoverImage || s.spotifyAlbumArt || s.itunesAlbumArt || null;
+        if (currentCoverUrl) { coverPreviewEl.src = currentCoverUrl; coverPreviewEl.classList.remove('hidden'); } else { coverPreviewEl.classList.add('hidden'); }
+        if (s.customCoverImage) { coverStatusEl.innerText = '📁 Kendi yüklediğin kapak resmi aktif.'; coverRemoveBtn.classList.remove('hidden'); }
+        else { coverStatusEl.innerText = currentCoverUrl ? '🟢 Otomatik çekilen kapak kullanılıyor.' : 'Henüz kapak yok. "Spotify\'dan Çek" dene veya kendi resmini yükle.'; coverRemoveBtn.classList.add('hidden'); }
+
         editFormCouplets.reset(s.lyrics);
         document.getElementById('editSongModal').classList.remove('hidden');
     }
@@ -1661,6 +1968,93 @@
             document.getElementById('es_audioStatus').innerText = '';
         } catch (err) {
             console.error('❌ Önizleme kaldırılamadı:', err);
+        }
+    });
+
+    // Resmi tarayıcıda küçültüp JPEG'e çevirir; Realtime Database'e base64 olarak yazarken
+    // dosya boyutunu (ve dolayısıyla veritabanı maliyetini) makul seviyede tutmak için.
+    function resimKucultVeBase64eCevir(file, maxBoyut = 500, kalite = 0.82) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = reject;
+            reader.onload = () => {
+                const img = new Image();
+                img.onerror = reject;
+                img.onload = () => {
+                    let { width, height } = img;
+                    if (width > height && width > maxBoyut) { height = Math.round(height * (maxBoyut / width)); width = maxBoyut; }
+                    else if (height > maxBoyut) { width = Math.round(width * (maxBoyut / height)); height = maxBoyut; }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width; canvas.height = height;
+                    canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', kalite));
+                };
+                img.src = reader.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    document.getElementById('es_coverUpload').addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file || !editingSongKey) return;
+        const statusEl = document.getElementById('es_coverUploadStatus');
+        statusEl.className = 'text-xs font-bold text-sky-300';
+        statusEl.innerText = 'Yükleniyor...';
+        try {
+            const dataUrl = await resimKucultVeBase64eCevir(file);
+            await update(ref(db, 'songs/' + editingSongKey), { customCoverImage: dataUrl });
+            statusEl.className = 'text-xs font-bold text-emerald-400';
+            statusEl.innerText = '✅ Yüklendi!';
+            document.getElementById('es_coverStatus').innerText = '📁 Kendi yüklediğin kapak resmi aktif.';
+            document.getElementById('es_coverPreview').src = dataUrl;
+            document.getElementById('es_coverPreview').classList.remove('hidden');
+            document.getElementById('es_removeCover').classList.remove('hidden');
+        } catch (err) {
+            console.error('❌ Kapak yüklenemedi:', err);
+            statusEl.className = 'text-xs font-bold text-red-400';
+            statusEl.innerText = '❌ Yükleme hatası.';
+        }
+    });
+
+    document.getElementById('es_removeCover').addEventListener('click', async () => {
+        if (!editingSongKey) return;
+        try {
+            await update(ref(db, 'songs/' + editingSongKey), { customCoverImage: null });
+            document.getElementById('es_coverStatus').innerText = 'Henüz özel kapak yüklenmedi (otomatik çekilen Spotify/iTunes kapağı kullanılıyor).';
+            document.getElementById('es_removeCover').classList.add('hidden');
+            document.getElementById('es_coverUploadStatus').innerText = '';
+        } catch (err) {
+            console.error('❌ Kapak kaldırılamadı:', err);
+        }
+    });
+
+    document.getElementById('es_addCoverUrl').addEventListener('click', async () => {
+        if (!editingSongKey) return;
+        const urlInput = document.getElementById('es_coverUrlInput');
+        const url = urlInput.value.trim();
+        const statusEl = document.getElementById('es_coverUploadStatus');
+        if (!url) return;
+        if (!/^https?:\/\//i.test(url)) {
+            statusEl.className = 'text-xs font-bold text-red-400';
+            statusEl.innerText = '⚠️ Geçerli bir URL gir (http:// veya https:// ile başlamalı).';
+            return;
+        }
+        statusEl.className = 'text-xs font-bold text-sky-300';
+        statusEl.innerText = 'Ekleniyor...';
+        try {
+            await update(ref(db, 'songs/' + editingSongKey), { customCoverImage: url });
+            statusEl.className = 'text-xs font-bold text-emerald-400';
+            statusEl.innerText = '✅ Eklendi!';
+            document.getElementById('es_coverStatus').innerText = '🔗 URL ile eklenen kapak resmi aktif.';
+            document.getElementById('es_coverPreview').src = url;
+            document.getElementById('es_coverPreview').classList.remove('hidden');
+            document.getElementById('es_removeCover').classList.remove('hidden');
+            urlInput.value = '';
+        } catch (err) {
+            console.error('❌ Kapak URL olarak eklenemedi:', err);
+            statusEl.className = 'text-xs font-bold text-red-400';
+            statusEl.innerText = '❌ Ekleme hatası.';
         }
     });
 
@@ -1793,7 +2187,7 @@
         const tbody = document.getElementById('sf_tableBody');
         const showMoreBtn = document.getElementById('sf_showMore');
         if (list.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-gray-400">Sonuç bulunamadı.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-400">Sonuç bulunamadı.</td></tr>`;
             showMoreBtn.classList.add('hidden');
             return;
         }
@@ -1804,19 +2198,27 @@
         } else {
             showMoreBtn.classList.add('hidden');
         }
-        tbody.innerHTML = visibleList.map(([key, s]) => `
+        tbody.innerHTML = visibleList.map(([key, s]) => {
+            const coverUrl = s.customCoverImage || s.spotifyAlbumArt || s.itunesAlbumArt || null;
+            return `
             <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-                <td class="py-4 font-bold text-white">${s.emoji || '🎵'} ${s.title} ${s.releaseDate?.day ? `<span class="text-[10px] text-amber-400 font-normal">🌟 ${s.releaseDate.day}/${s.releaseDate.month}</span>` : ''} ${s.spotifyPreviewUrl || s.itunesPreviewUrl || s.customPreviewAudio ? '<i class="fas fa-volume-up text-emerald-400 text-xs ml-1" title="Ses önizlemesi var"></i>' : ''}</td>
-                <td class="py-4">${s.artist}</td>
-                <td class="py-4">${s.year || '—'}</td>
-                <td class="py-4">${(s.lyrics || []).length}</td>
-                <td class="py-4 text-right whitespace-nowrap">
+                <td class="py-3 pr-2">
+                    ${coverUrl
+                        ? `<img src="${coverUrl}" loading="lazy" class="w-11 h-11 rounded-lg object-cover border border-white/10 shadow" alt="">`
+                        : `<div class="w-11 h-11 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-lg">${s.emoji || '🎵'}</div>`}
+                </td>
+                <td class="py-3 font-bold text-white">${s.title} ${s.releaseDate?.day ? `<span class="text-[10px] text-amber-400 font-normal">🌟 ${s.releaseDate.day}/${s.releaseDate.month}</span>` : ''} ${s.spotifyPreviewUrl || s.itunesPreviewUrl || s.customPreviewAudio ? '<i class="fas fa-volume-up text-emerald-400 text-xs ml-1" title="Ses önizlemesi var"></i>' : ''}</td>
+                <td class="py-3">${s.artist}</td>
+                <td class="py-3">${s.year || '—'}</td>
+                <td class="py-3 text-center">${(s.lyrics || []).length}</td>
+                <td class="py-3 text-right whitespace-nowrap">
                     ${s.customPreviewAudio || s.spotifyPreviewUrl || s.itunesPreviewUrl ? `<button data-key="${key}" class="listen-test-btn text-teal-400 hover:text-teal-300 text-xs font-bold border border-teal-500/40 bg-teal-500/10 px-3 py-1.5 rounded-lg mr-1" title="Önizlemeyi Çal/Duraklat"><i class="fas fa-play listen-test-icon"></i></button>` : ''}
                     <button data-key="${key}" class="spotify-fetch-btn text-emerald-400 hover:text-emerald-300 text-xs font-bold border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 rounded-lg mr-1" title="Spotify + iTunes'tan Çek"><i class="fab fa-spotify"></i></button>
                     <button data-key="${key}" class="edit-song-btn text-sky-400 hover:text-sky-300 text-xs font-bold border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 rounded-lg mr-1"><i class="fas fa-pen mr-1"></i> Düzenle</button>
                     <button data-key="${key}" class="delete-song-btn text-red-400 hover:text-red-300 text-xs font-bold border border-red-500/40 bg-red-500/10 px-3 py-1.5 rounded-lg"><i class="fas fa-trash mr-1"></i> Sil</button>
                 </td>
-            </tr>`).join('');
+            </tr>`;
+        }).join('');
 
         wireListenButtons();
 
@@ -1887,6 +2289,8 @@
             const mb = db_ ? db_.month * 100 + db_.day : 9999;
             return ma - mb;
         });
+        else if (sortMode === 'versesDesc') list.sort((a, b) => (b[1].lyrics || []).length - (a[1].lyrics || []).length);
+        else if (sortMode === 'versesAsc') list.sort((a, b) => (a[1].lyrics || []).length - (b[1].lyrics || []).length);
 
         renderSongTable(list);
     }
@@ -2180,6 +2584,9 @@
             let topJoker = '—', topVal = 0;
             Object.entries(jokerCounts).forEach(([k, v]) => { if (v > topVal) { topVal = v; topJoker = k; } });
             return { artist, gorulme, oran, topJoker: topVal > 0 ? topJoker : '—', songCount: artistSongCounts[artist] || 0 };
+        }).filter(r => {
+            const q = (document.getElementById('artist_search')?.value || '').trim().toLocaleLowerCase('tr');
+            return !q || r.artist.toLocaleLowerCase('tr').includes(q);
         });
 
         const sortMode = document.getElementById('artist_sort').value;
@@ -2189,23 +2596,28 @@
 
         const tbody = document.getElementById('artistTableBody');
         if (rows.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-400">Henüz yeterli veri yok.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-gray-400">Henüz yeterli veri yok.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = rows.map((r, i) => {
-            const hintText = artistHintsCache[sanitizeKey(r.artist)]?.hint || '';
+            const photo = adminArtistsCache[sanitizeKey(r.artist)]?.mainPhotoUrl || '';
             return `
                 <tr class="border-b border-white/5 hover:bg-white/5 transition-colors">
-                    <td class="py-4 font-bold text-white cursor-pointer hover:text-sky-300 view-artist-songs-btn" data-idx="${i}">${r.artist} <i class="fas fa-eye text-xs text-gray-500 ml-1"></i></td>
-                    <td class="py-4">${artistSongCounts[r.artist] || 0}</td>
-                    <td class="py-4">${fmt(r.gorulme)}</td>
-                    <td class="py-4 font-bold ${r.oran < 40 ? 'text-red-400' : r.oran <= 75 ? 'text-emerald-400' : 'text-amber-400'}">%${r.oran}</td>
-                    <td class="py-4"><span class="bg-purple-500/20 text-purple-300 px-2 py-1 rounded text-xs border border-purple-500/30">${r.topJoker}</span></td>
-                    <td class="py-4 text-xs text-gray-400 max-w-[220px] truncate" title="${hintText.replace(/"/g, '&quot;')}">
-                        ${hintText ? `<span class="text-gray-300">${hintText}</span>` : '<span class="text-gray-600">Yok</span>'}
-                        <button class="edit-artist-hint-btn text-amber-400 hover:text-amber-300 ml-2" data-idx="${i}" title="Düzenle"><i class="fas fa-pen"></i></button>
-                        ${hintText ? `<button class="delete-artist-hint-btn text-red-400 hover:text-red-300 ml-1" data-idx="${i}" title="İpucunu Sil"><i class="fas fa-trash"></i></button>` : ''}
+                    <td class="py-3 pr-2">
+                        ${photo
+                            ? `<img src="${photo}" loading="lazy" class="w-11 h-11 rounded-full object-cover border border-white/10 shadow" alt="">`
+                            : `<div class="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-500"><i class="fas fa-user"></i></div>`}
+                    </td>
+                    <td class="py-3 font-bold text-white cursor-pointer hover:text-sky-300 view-artist-songs-btn" data-idx="${i}">${r.artist} <i class="fas fa-eye text-xs text-gray-500 ml-1"></i></td>
+                    <td class="py-3">${artistSongCounts[r.artist] || 0}</td>
+                    <td class="py-3">${fmt(r.gorulme)}</td>
+                    <td class="py-3 font-bold ${r.oran < 40 ? 'text-red-400' : r.oran <= 75 ? 'text-emerald-400' : 'text-amber-400'}">%${r.oran}</td>
+                    <td class="py-3"><span class="bg-purple-500/20 text-purple-300 px-2 py-1 rounded text-xs border border-purple-500/30">${r.topJoker}</span></td>
+                    <td class="py-3">
+                        <button class="view-artist-detail-btn text-teal-300 hover:text-teal-200 text-xs font-bold border border-teal-500/40 bg-teal-500/10 hover:bg-teal-500/20 px-3 py-1.5 rounded-lg transition-colors" data-idx="${i}">
+                            <i class="fas fa-user-circle mr-1"></i> Sanatçı Detaylarını Gör
+                        </button>
                     </td>
                 </tr>`;
         }).join('');
@@ -2220,27 +2632,11 @@
             });
         });
 
-        tbody.querySelectorAll('.edit-artist-hint-btn').forEach(btn => {
+        tbody.querySelectorAll('.view-artist-detail-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 const artist = rows[Number(btn.dataset.idx)].artist;
-                document.getElementById('ah_artist').value = artist;
-                document.getElementById('ah_hint').value = artistHintsCache[sanitizeKey(artist)]?.hint || '';
-                document.getElementById('ah_hint').focus();
-                document.getElementById('ah_hint').scrollIntoView({ behavior: 'smooth', block: 'center' });
-            });
-        });
-
-        tbody.querySelectorAll('.delete-artist-hint-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.stopPropagation();
-                const artist = rows[Number(btn.dataset.idx)].artist;
-                if (!confirm(`"${artist}" için ipucunu silmek istediğine emin misin?`)) return;
-                try {
-                    await set(ref(db, 'artistHints/' + sanitizeKey(artist)), null);
-                } catch (err) {
-                    console.error('❌ İpucu silinemedi:', err.code, err.message);
-                    alert('Hata: ' + (err.code || err.message));
-                }
+                document.getElementById('ad_artistInput').value = artist;
+                openArtistDetailModal(artist);
             });
         });
     }
@@ -2249,11 +2645,13 @@
     document.getElementById('spotify_clientId').value = localStorage.getItem('kp_spotify_id') || '';
     document.getElementById('spotify_clientSecret').value = localStorage.getItem('kp_spotify_secret') || '';
     document.getElementById('lastfm_apiKey').value = localStorage.getItem('kp_lastfm_key') || '';
+    document.getElementById('gemini_apiKey').value = localStorage.getItem('kp_gemini_key') || '';
 
     document.getElementById('spotify_save').addEventListener('click', () => {
         localStorage.setItem('kp_spotify_id', document.getElementById('spotify_clientId').value.trim());
         localStorage.setItem('kp_spotify_secret', document.getElementById('spotify_clientSecret').value.trim());
         localStorage.setItem('kp_lastfm_key', document.getElementById('lastfm_apiKey').value.trim());
+        localStorage.setItem('kp_gemini_key', document.getElementById('gemini_apiKey').value.trim());
         const statusEl = document.getElementById('spotify_status');
         statusEl.className = 'text-sm font-bold text-emerald-400';
         statusEl.innerText = '✅ Kaydedildi (bu tarayıcıda saklanıyor).';
@@ -2298,7 +2696,7 @@
         }
     }
 
-    async function spotifydanCek(key, btn) {
+    async function spotifydanCek(key, btn, silent = false) {
         const entry = allSongsCache.find(([k]) => k === key);
         if (!entry) return;
         const song = entry[1];
@@ -2406,15 +2804,54 @@
                 sonuclar.push('💡 İpucu: "Düzenle" > "Kendi Ses Dosyanı Yükle" ile manuel ekleyebilirsin.');
             }
 
-            showToastAdmin(`${song.title} — ${song.artist}`, sonuclar.join('\n'));
+            if (!silent) showToastAdmin(`${song.title} — ${song.artist}`, sonuclar.join('\n'));
         } catch (err) {
             console.error('❌ Veri çekme hatası:', err);
-            showToastAdmin('Hata', err.message);
+            if (!silent) showToastAdmin('Hata', err.message);
         } finally {
             btn.innerHTML = originalHtml;
             btn.disabled = false;
         }
     }
+
+    document.getElementById('bulkUpdateSongs_btn').addEventListener('click', async () => {
+        const btn = document.getElementById('bulkUpdateSongs_btn');
+        const statusEl = document.getElementById('bulkUpdateSongs_status');
+        const songKeys = allSongsCache.map(([key]) => key);
+        if (songKeys.length === 0) {
+            statusEl.className = 'text-sm font-bold text-amber-400';
+            statusEl.innerText = 'Güncellenecek şarkı bulunamadı.';
+            return;
+        }
+        if (!confirm(`${songKeys.length} şarkı için Spotify/iTunes/Last.fm'den veri çekilecek. Bu işlem biraz zaman alabilir. Devam edilsin mi?`)) return;
+
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        let done = 0, hata = 0;
+        const fakeBtn = { innerHTML: '', disabled: false };
+        try {
+            for (const key of songKeys) {
+                const entry = allSongsCache.find(([k]) => k === key);
+                const label = entry ? `${entry[1].title} — ${entry[1].artist}` : key;
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Güncelleniyor...`;
+                statusEl.className = 'text-sm font-bold text-sky-300';
+                statusEl.innerText = `${done + 1} / ${songKeys.length} — ${label}`;
+                try {
+                    await spotifydanCek(key, fakeBtn, true);
+                } catch (err) {
+                    hata++;
+                    console.error(`❌ ${label} güncellenemedi:`, err.code || err.message);
+                }
+                done++;
+                await new Promise(r => setTimeout(r, 250));
+            }
+            statusEl.className = hata > 0 ? 'text-sm font-bold text-amber-400' : 'text-sm font-bold text-emerald-400';
+            statusEl.innerText = `✅ ${done} şarkı işlendi${hata > 0 ? ` (${hata} tanesinde hata oluştu)` : ''}.`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    });
 
     // Admin paneli için basit, engelleyici olmayan bildirim (alert() yerine).
     function showToastAdmin(title, message) {
@@ -2494,32 +2931,422 @@
 
     document.getElementById('year_sort').addEventListener('change', renderYearsTable);
     document.getElementById('artist_sort').addEventListener('change', () => renderArtists(_latestUsersCache));
+    document.getElementById('artist_search').addEventListener('input', () => renderArtists(_latestUsersCache));
 
     function sanitizeKey(str) {
         return String(str).replace(/[.#$\[\]\/]/g, '_').trim();
     }
 
-    document.getElementById('ah_save').addEventListener('click', async () => {
-        const statusEl = document.getElementById('ah_status');
-        const artist = document.getElementById('ah_artist').value.trim();
-        const hint = document.getElementById('ah_hint').value.trim();
-        if (!artist) {
-            statusEl.className = 'text-sm font-bold text-red-400';
-            statusEl.innerText = '⚠️ Sanatçı adı gerekli.';
+    // ==================== SANATÇI TYPEAHEAD (Live Search) ====================
+    // "Şarkı Ekle" ve "Şarkıyı Düzenle" formlarındaki sanatçı alanlarını canlı arama
+    // kutusuna çeviren küçük, tekrar kullanılabilir bileşen. CSS'e dokunmadan, position:fixed
+    // bir açılır liste oluşturur; mevcut şarkı veritabanındaki isimlerden ve varsa
+    // "Sanatçı Detayları" panelinde kayıtlı fotoğraflardan eşleşme gösterir.
+    function attachArtistTypeahead(inputEl) {
+        if (!inputEl) return;
+        let dropdown = null;
+
+        function closeDropdown() {
+            if (dropdown) { dropdown.remove(); dropdown = null; }
+        }
+
+        function renderDropdown(matches) {
+            closeDropdown();
+            if (matches.length === 0) return;
+            const rect = inputEl.getBoundingClientRect();
+            dropdown = document.createElement('div');
+            dropdown.className = 'fixed z-[400] bg-black/95 border border-white/20 rounded-lg shadow-2xl overflow-hidden max-h-64 overflow-y-auto';
+            dropdown.style.left = rect.left + 'px';
+            dropdown.style.top = (rect.bottom + 4) + 'px';
+            dropdown.style.width = Math.max(rect.width, 220) + 'px';
+            dropdown.innerHTML = matches.map((name, i) => {
+                const photo = adminArtistsCache[sanitizeKey(name)]?.mainPhotoUrl || '';
+                const avatarHtml = photo
+                    ? `<img src="${photo}" class="w-7 h-7 rounded-full object-cover border border-white/20 flex-shrink-0">`
+                    : `<div class="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-gray-400 flex-shrink-0"><i class="fas fa-user"></i></div>`;
+                const count = allSongsCache.filter(([, s]) => s.artist === name).length;
+                return `<div class="ta-item flex items-center gap-2 px-3 py-2 hover:bg-white/10 cursor-pointer text-sm text-white" data-i="${i}">${avatarHtml}<span class="flex-1 truncate">${name}</span><span class="text-[10px] text-gray-500 flex-shrink-0">${count} şarkı</span></div>`;
+            }).join('');
+            document.body.appendChild(dropdown);
+            dropdown.querySelectorAll('.ta-item').forEach(el => {
+                el.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    inputEl.value = matches[Number(el.dataset.i)];
+                    inputEl.dispatchEvent(new Event('change'));
+                    closeDropdown();
+                });
+            });
+        }
+
+        inputEl.addEventListener('input', () => {
+            const q = inputEl.value.trim().toLocaleLowerCase('tr');
+            if (q.length < 1) { closeDropdown(); return; }
+            const allArtists = [...new Set(allSongsCache.map(([, s]) => s.artist).filter(Boolean))];
+            const matches = allArtists.filter(a => a.toLocaleLowerCase('tr').includes(q)).slice(0, 8);
+            renderDropdown(matches);
+        });
+        inputEl.addEventListener('blur', () => setTimeout(closeDropdown, 150));
+        inputEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDropdown(); });
+        window.addEventListener('scroll', closeDropdown, true);
+    }
+    // ==================== /SANATÇI TYPEAHEAD ====================
+    attachArtistTypeahead(document.getElementById('sf_artist'));
+    attachArtistTypeahead(document.getElementById('es_artist'));
+
+    // ==================== SANATÇI DETAYLARI MODALI ====================
+    // Firebase şeması: artists/{sanitizeKey(isim)} = { name, mainPhotoUrl, mainPhotoLocked,
+    //   photos:[url,...], bio, hint, tags:[...], similarArtists:[...], updatedAt }
+    // NOT: Spotify/iTunes/Last.fm API'leri sanatçı başına genelde tek bir "promo" görseli
+    // döndürür (çoklu fotoğraf arşivi sağlamazlar). Galeriyi anlamlı doldurabilmek için
+    // sanatçının Spotify'daki en popüler şarkı/albüm kapaklarını da ikincil "fotoğraf"
+    // olarak ekliyoruz; admin dilediğini ana profil resmi olarak seçip kilitleyebilir.
+    let ad_currentArtist = null;
+    let ad_currentData = { photos: [], mainPhotoUrl: '', mainPhotoLocked: false, mainPhotoCrop: null, bio: '', hint: '', tags: [], similarArtists: [] };
+    let ad_photosExpanded = false;
+
+    async function sanatciFotoVeBilgiGetir(artistName) {
+        const candidates = [];
+
+        // 1) Spotify: sanatçı promo fotoğrafı + en popüler 6 şarkının albüm kapakları
+        try {
+            const token = await spotifyTokenAl();
+            const q = encodeURIComponent(artistName);
+            const resp = await fetch(`https://api.spotify.com/v1/search?q=${q}&type=artist&limit=1`, { headers: { 'Authorization': 'Bearer ' + token } });
+            if (resp.ok) {
+                const data = await resp.json();
+                const artist = data.artists?.items?.[0];
+                if (artist) {
+                    (artist.images || []).slice(0, 1).forEach(img => candidates.push({ url: img.url, source: 'Spotify Foto' }));
+                    try {
+                        const topResp = await fetch(`https://api.spotify.com/v1/artists/${artist.id}/top-tracks?market=TR`, { headers: { 'Authorization': 'Bearer ' + token } });
+                        if (topResp.ok) {
+                            const topData = await topResp.json();
+                            (topData.tracks || []).slice(0, 6).forEach(t => {
+                                const art = t.album?.images?.[0]?.url;
+                                if (art) candidates.push({ url: art, source: 'Spotify Albüm' });
+                            });
+                        }
+                    } catch (e) { /* top-tracks olmasa da devam */ }
+                }
+            }
+        } catch (err) { console.warn('Spotify sanatçı foto hatası:', err.message); }
+
+        // 2) iTunes: sanatçının en bilinen birkaç şarkısının kapağı
+        try {
+            const q = encodeURIComponent(artistName);
+            const songResp = await fetch(`https://itunes.apple.com/search?term=${q}&media=music&entity=song&attribute=artistTerm&limit=3`);
+            if (songResp.ok) {
+                const songData = await songResp.json();
+                (songData.results || []).forEach(r => {
+                    if (r.artworkUrl100) candidates.push({ url: r.artworkUrl100.replace('100x100', '600x600'), source: 'iTunes' });
+                });
+            }
+        } catch (err) { console.warn('iTunes sanatçı foto hatası:', err.message); }
+
+        // 3) Last.fm: biyografi + etiketler + benzer sanatçılar (varsa API anahtarı ile)
+        let bio = '', tags = [], similar = [];
+        const lastfmKey = localStorage.getItem('kp_lastfm_key');
+        if (lastfmKey) {
+            try {
+                const resp = await fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getInfo&artist=${encodeURIComponent(artistName)}&api_key=${lastfmKey}&format=json`);
+                const data = await resp.json();
+                if (data.artist) {
+                    if (data.artist.image) {
+                        const img = data.artist.image.find(i => i.size === 'extralarge' || i.size === 'mega');
+                        if (img && img['#text']) candidates.push({ url: img['#text'], source: 'Last.fm' });
+                    }
+                    if (data.artist.bio?.summary) bio = data.artist.bio.summary.replace(/<a[^>]*>.*?<\/a>/g, '').trim();
+                    if (data.artist.tags?.tag) tags = data.artist.tags.tag.slice(0, 8).map(t => t.name);
+                }
+                const simResp = await fetch(`https://ws.audioscrobbler.com/2.0/?method=artist.getSimilar&artist=${encodeURIComponent(artistName)}&api_key=${lastfmKey}&format=json&limit=8`);
+                const simData = await simResp.json();
+                if (simData.similarartists?.artist) similar = simData.similarartists.artist.map(a => a.name);
+            } catch (err) { console.warn('Last.fm sanatçı bilgisi hatası:', err.message); }
+        }
+
+        // Boş url ve tekrarları temizle
+        const seen = new Set();
+        const cleanCandidates = candidates.filter(c => c.url && !seen.has(c.url) && seen.add(c.url));
+        return { photos: cleanCandidates, bio, tags, similar };
+    }
+
+    // Tek bir sanatçı için: mevcut kayıtlı veriyi SİLMEDEN, yeni bulunan fotoğraf/etiket/benzer
+    // sanatçıları üzerine ekler. Hiç verisi olmayan sanatçıda ilk bulunan fotoğraf ana resim olur.
+    async function bulkGuncelleSanatci(artistName) {
+        const key = sanitizeKey(artistName);
+        let existing = {};
+        try {
+            const snap = await get(ref(db, 'artists/' + key));
+            if (snap.exists()) existing = snap.val();
+        } catch (e) { /* kayıt yoksa boş devam */ }
+
+        const result = await sanatciFotoVeBilgiGetir(artistName);
+
+        const existingPhotos = Array.isArray(existing.photos) ? existing.photos.slice() : [];
+        const existingUrls = new Set(existingPhotos);
+        const newUrls = result.photos.map(p => p.url).filter(u => u && !existingUrls.has(u));
+        const mergedPhotos = existingPhotos.concat(newUrls);
+
+        let mainPhotoUrl = existing.mainPhotoUrl || '';
+        if (!mainPhotoUrl) {
+            // Hiç ana resim yoksa: ilk bulunan sonucu ana resim yap.
+            mainPhotoUrl = result.photos[0]?.url || mergedPhotos[0] || '';
+        }
+
+        const bio = existing.bio || result.bio || '';
+
+        const existingTags = Array.isArray(existing.tags) ? existing.tags.slice() : [];
+        const existingTagsLower = new Set(existingTags.map(t => t.toLocaleLowerCase('tr')));
+        const mergedTags = existingTags.concat((result.tags || []).filter(t => t && !existingTagsLower.has(t.toLocaleLowerCase('tr'))));
+
+        const existingSimilar = Array.isArray(existing.similarArtists) ? existing.similarArtists.slice() : [];
+        const existingSimilarLower = new Set(existingSimilar.map(t => t.toLocaleLowerCase('tr')));
+        const mergedSimilar = existingSimilar.concat((result.similar || []).filter(t => t && !existingSimilarLower.has(t.toLocaleLowerCase('tr'))));
+
+        await update(ref(db, 'artists/' + key), {
+            name: artistName,
+            mainPhotoUrl: mainPhotoUrl || null,
+            mainPhotoLocked: !!(existing.mainPhotoUrl) || !!mainPhotoUrl,
+            photos: mergedPhotos,
+            bio,
+            hint: existing.hint || '',
+            tags: mergedTags,
+            similarArtists: mergedSimilar,
+            updatedAt: Date.now()
+        });
+
+        return { newPhotoCount: newUrls.length, newTagCount: mergedTags.length - existingTags.length, newSimilarCount: mergedSimilar.length - existingSimilar.length };
+    }
+
+    document.getElementById('bulkUpdateArtists_btn').addEventListener('click', async () => {
+        const btn = document.getElementById('bulkUpdateArtists_btn');
+        const statusEl = document.getElementById('bulkUpdateArtists_status');
+        const artistNames = [...new Set(allSongsCache.filter(([, s]) => s && s.artist).map(([, s]) => s.artist))];
+        if (artistNames.length === 0) {
+            statusEl.className = 'text-sm font-bold text-amber-400';
+            statusEl.innerText = 'Güncellenecek sanatçı bulunamadı.';
             return;
         }
+        if (!confirm(`${artistNames.length} sanatçı için Spotify/iTunes/Last.fm'den veri çekilecek. Bu işlem biraz zaman alabilir. Devam edilsin mi?`)) return;
+
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        let done = 0, hata = 0;
         try {
-            statusEl.className = 'text-sm font-bold text-sky-300';
-            statusEl.innerText = 'Kaydediliyor...';
-            await update(ref(db, 'artistHints/' + sanitizeKey(artist)), { artist, hint, updatedAt: Date.now() });
-            statusEl.className = 'text-sm font-bold text-emerald-400';
-            statusEl.innerText = '✅ Kaydedildi!';
-        } catch (err) {
-            console.error('❌ İpucu kaydedilemedi:', err.code, err.message);
-            statusEl.className = 'text-sm font-bold text-red-400';
-            statusEl.innerText = `❌ Hata: ${err.code || err.message}`;
+            for (const artistName of artistNames) {
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Güncelleniyor...`;
+                statusEl.className = 'text-sm font-bold text-sky-300';
+                statusEl.innerText = `${done + 1} / ${artistNames.length} — ${artistName}`;
+                try {
+                    await bulkGuncelleSanatci(artistName);
+                } catch (err) {
+                    hata++;
+                    console.error(`❌ ${artistName} güncellenemedi:`, err.code || err.message);
+                }
+                done++;
+                // API rate limit'e takılmamak için aralara küçük bir bekleme koyuyoruz.
+                await new Promise(r => setTimeout(r, 250));
+            }
+            statusEl.className = hata > 0 ? 'text-sm font-bold text-amber-400' : 'text-sm font-bold text-emerald-400';
+            statusEl.innerText = `✅ ${done} sanatçı işlendi${hata > 0 ? ` (${hata} tanesinde hata oluştu)` : ''}.`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
         }
     });
+
+function ad_renderMainPhotoPreview() {
+        const img = document.getElementById('ad_mainPhotoPreview');
+        const empty = document.getElementById('ad_mainPhotoEmpty');
+
+        if (ad_currentData.mainPhotoUrl) {
+            window.ad_loadImageIntoCropper(ad_currentData.mainPhotoUrl, ad_currentData.mainPhotoCrop);
+        } else {
+            img.classList.add('hidden');
+            img.removeAttribute('src');
+            empty.classList.remove('hidden');
+        }
+    }
+
+    function ad_renderPhotoGrid() {
+        const grid = document.getElementById('ad_photoGrid');
+        const noMsg = document.getElementById('ad_noPhotosMsg');
+        const showCount = ad_photosExpanded ? ad_currentData.photos.length : Math.min(3, ad_currentData.photos.length);
+        const toShow = ad_currentData.photos.slice(0, showCount);
+
+        noMsg.classList.toggle('hidden', ad_currentData.photos.length !== 0);
+
+        grid.innerHTML = toShow.map((p, i) => `
+            <div class="relative group cursor-pointer ad-photo-item" data-url="${p.url.replace(/"/g, '&quot;')}" title="Ana profil resmi olarak seç">
+                <img src="${p.url}" class="w-full aspect-square object-cover rounded-lg border-2 transition-colors ${p.url === ad_currentData.mainPhotoUrl ? 'border-teal-400 shadow-[0_0_10px_rgba(20,184,166,0.6)]' : 'border-white/10 group-hover:border-teal-400/60'}">
+                <span class="absolute bottom-1 left-1 bg-black/70 text-[9px] text-white px-1.5 py-0.5 rounded">${p.source}</span>
+                ${p.url === ad_currentData.mainPhotoUrl ? '<span class="absolute top-1 left-1 bg-teal-500 text-black text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center"><i class="fas fa-check"></i></span>' : ''}
+                <button class="ad-photo-delete absolute top-1 right-1 bg-red-600/90 hover:bg-red-500 text-white w-5 h-5 rounded-full text-[10px] items-center justify-center hidden group-hover:flex" data-idx="${i}" title="Fotoğrafı Sil"><i class="fas fa-times"></i></button>
+            </div>`).join('');
+
+        grid.querySelectorAll('.ad-photo-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (e.target.closest('.ad-photo-delete')) return;
+                if (ad_currentData.mainPhotoUrl !== el.dataset.url) ad_currentData.mainPhotoCrop = null; // yeni resim, kırpma sıfırlanır
+                ad_currentData.mainPhotoUrl = el.dataset.url;
+                ad_currentData.mainPhotoLocked = true;
+                ad_renderPhotoGrid();
+                ad_renderMainPhotoPreview();
+            });
+        });
+
+        grid.querySelectorAll('.ad-photo-delete').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const removedUrl = toShow[Number(btn.dataset.idx)].url;
+                ad_currentData.photos = ad_currentData.photos.filter(p => p.url !== removedUrl);
+                if (ad_currentData.mainPhotoUrl === removedUrl) {
+                    ad_currentData.mainPhotoUrl = ad_currentData.photos[0]?.url || '';
+                    ad_currentData.mainPhotoLocked = false;
+                }
+                ad_renderPhotoGrid();
+                ad_renderMainPhotoPreview();
+            });
+        });
+
+        const moreBtn = document.getElementById('ad_showMorePhotos');
+        const moreCount = document.getElementById('ad_morePhotoCount');
+        if (!ad_photosExpanded && ad_currentData.photos.length > 3) {
+            moreBtn.classList.remove('hidden');
+            moreCount.innerText = ad_currentData.photos.length - 3;
+        } else {
+            moreBtn.classList.add('hidden');
+        }
+    }
+
+    function ad_renderChipList(containerId, arr, onRemove) {
+        const el = document.getElementById(containerId);
+        el.innerHTML = arr.length ? arr.map((item, i) => `
+            <span class="bg-white/10 text-xs text-gray-200 px-2 py-1 rounded-lg flex items-center gap-1.5">${item} <button data-i="${i}" class="ad-chip-remove text-red-400 hover:text-red-300"><i class="fas fa-times"></i></button></span>
+        `).join('') : '<span class="text-xs text-gray-500">Henüz yok.</span>';
+        el.querySelectorAll('.ad-chip-remove').forEach(btn => {
+            btn.addEventListener('click', () => { arr.splice(Number(btn.dataset.i), 1); onRemove(); });
+        });
+    }
+    function ad_rerenderTags() { ad_renderChipList('ad_tagsList', ad_currentData.tags, ad_rerenderTags); }
+    function ad_rerenderSimilar() { ad_renderChipList('ad_similarList', ad_currentData.similarArtists, ad_rerenderSimilar); }
+
+    async function openArtistDetailModal(artistName) {
+        ad_currentArtist = artistName;
+        ad_photosExpanded = false;
+        document.getElementById('ad_artistName').innerText = artistName;
+        document.getElementById('ad_status').innerText = '';
+        document.getElementById('ad_fetchStatus').innerText = '';
+        ad_currentData = { photos: [], mainPhotoUrl: '', mainPhotoLocked: false, mainPhotoCrop: null, bio: '', hint: '', tags: [], similarArtists: [] };
+        document.getElementById('artistDetailModal').classList.remove('hidden');
+
+        try {
+            const snap = await get(ref(db, 'artists/' + sanitizeKey(artistName)));
+            if (snap.exists()) {
+                const d = snap.val();
+                ad_currentData.mainPhotoUrl = d.mainPhotoUrl || '';
+                ad_currentData.mainPhotoLocked = !!d.mainPhotoLocked;
+                ad_currentData.mainPhotoCrop = d.mainPhotoCrop || null;
+                ad_currentData.bio = d.bio || '';
+                ad_currentData.tags = d.tags || [];
+                ad_currentData.similarArtists = d.similarArtists || [];
+                ad_currentData.photos = (d.photos || []).map(url => ({ url, source: 'Kayıtlı' }));
+                if (ad_currentData.mainPhotoUrl && !ad_currentData.photos.find(p => p.url === ad_currentData.mainPhotoUrl)) {
+                    ad_currentData.photos.unshift({ url: ad_currentData.mainPhotoUrl, source: 'Ana Resim' });
+                }
+            }
+            // Eski artistHints/ node'undan da ipucunu oku (henüz yeni modalda kaydedilmemiş olabilir).
+            const hintSnap = await get(ref(db, 'artistHints/' + sanitizeKey(artistName)));
+            ad_currentData.hint = (hintSnap.exists() ? hintSnap.val().hint : null) || ad_currentData.hint || '';
+        } catch (err) { console.error('❌ Sanatçı detayı okunamadı:', err.code, err.message); }
+
+        document.getElementById('ad_bio').value = ad_currentData.bio;
+        document.getElementById('ad_hint').value = ad_currentData.hint;
+        ad_renderPhotoGrid();
+        ad_renderMainPhotoPreview();
+        ad_rerenderTags();
+        ad_rerenderSimilar();
+    }
+    window.openArtistDetailModal = openArtistDetailModal;
+
+    document.getElementById('ad_openBtn').addEventListener('click', () => {
+        const name = document.getElementById('ad_artistInput').value.trim();
+        if (!name) return;
+        openArtistDetailModal(name);
+    });
+    document.getElementById('ad_close').addEventListener('click', () => document.getElementById('artistDetailModal').classList.add('hidden'));
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !document.getElementById('artistDetailModal').classList.contains('hidden')) {
+            document.getElementById('artistDetailModal').classList.add('hidden');
+        }
+    });
+    document.getElementById('ad_showMorePhotos').addEventListener('click', () => { ad_photosExpanded = true; ad_renderPhotoGrid(); });
+
+    document.getElementById('ad_addTag').addEventListener('click', () => {
+        const v = document.getElementById('ad_newTag').value.trim();
+        if (v) { ad_currentData.tags.push(v); document.getElementById('ad_newTag').value = ''; ad_rerenderTags(); }
+    });
+    document.getElementById('ad_addSimilar').addEventListener('click', () => {
+        const v = document.getElementById('ad_newSimilar').value.trim();
+        if (v) { ad_currentData.similarArtists.push(v); document.getElementById('ad_newSimilar').value = ''; ad_rerenderSimilar(); }
+    });
+
+    document.getElementById('ad_fetchPhotos').addEventListener('click', async () => {
+        if (!ad_currentArtist) return;
+        const btn = document.getElementById('ad_fetchPhotos');
+        const statusEl = document.getElementById('ad_fetchStatus');
+        const orig = btn.innerHTML;
+        btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getiriliyor...';
+        try {
+            const result = await sanatciFotoVeBilgiGetir(ad_currentArtist);
+            const existingUrls = new Set(ad_currentData.photos.map(p => p.url));
+            result.photos.forEach(p => { if (!existingUrls.has(p.url)) { ad_currentData.photos.push(p); existingUrls.add(p.url); } });
+            if (!ad_currentData.bio && result.bio) ad_currentData.bio = result.bio;
+            if (ad_currentData.tags.length === 0 && result.tags.length) ad_currentData.tags = result.tags;
+            if (ad_currentData.similarArtists.length === 0 && result.similar.length) ad_currentData.similarArtists = result.similar;
+            document.getElementById('ad_bio').value = ad_currentData.bio;
+            ad_rerenderTags(); ad_rerenderSimilar();
+            ad_renderPhotoGrid();
+            statusEl.className = 'text-xs font-bold text-emerald-400';
+            statusEl.innerText = `✅ ${result.photos.length} görsel, ${result.tags.length} etiket, ${result.similar.length} benzer sanatçı bulundu.`;
+        } catch (err) {
+            statusEl.className = 'text-xs font-bold text-red-400';
+            statusEl.innerText = '❌ Hata: ' + err.message;
+        } finally {
+            btn.disabled = false; btn.innerHTML = orig;
+        }
+    });
+
+    document.getElementById('ad_save').addEventListener('click', async () => {
+        if (!ad_currentArtist) return;
+        const statusEl = document.getElementById('ad_status');
+        ad_currentData.bio = document.getElementById('ad_bio').value.trim();
+        ad_currentData.hint = document.getElementById('ad_hint').value.trim();
+        try {
+            statusEl.className = 'text-sm font-bold text-sky-300'; statusEl.innerText = 'Kaydediliyor...';
+            await update(ref(db, 'artists/' + sanitizeKey(ad_currentArtist)), {
+                name: ad_currentArtist,
+                mainPhotoUrl: ad_currentData.mainPhotoUrl || null,
+                mainPhotoLocked: !!ad_currentData.mainPhotoUrl,
+                mainPhotoCrop: ad_currentData.mainPhotoCrop || null,
+                photos: ad_currentData.photos.map(p => p.url),
+                bio: ad_currentData.bio,
+                hint: ad_currentData.hint,
+                tags: ad_currentData.tags,
+                similarArtists: ad_currentData.similarArtists,
+                updatedAt: Date.now()
+            });
+            // Geriye dönük uyumluluk: eski artistHints/ node'u da güncellensin.
+            await update(ref(db, 'artistHints/' + sanitizeKey(ad_currentArtist)), { artist: ad_currentArtist, hint: ad_currentData.hint, updatedAt: Date.now() });
+            statusEl.className = 'text-sm font-bold text-emerald-400'; statusEl.innerText = '✅ Kaydedildi!';
+            renderArtists(_latestUsersCache);
+            setTimeout(() => document.getElementById('artistDetailModal').classList.add('hidden'), 400);
+        } catch (err) {
+            console.error('❌ Sanatçı detayı kaydedilemedi:', err.code, err.message);
+            statusEl.className = 'text-sm font-bold text-red-400'; statusEl.innerText = `❌ Hata: ${err.code || err.message}`;
+        }
+    });
+    // ==================== /SANATÇI DETAYLARI MODALI ====================
 
     onValue(ref(db, 'artistHints'), (snapshot) => {
         artistHintsCache = snapshot.val() || {};
@@ -2690,6 +3517,202 @@
     }, (error) => {
         console.error('❌ Gönderilenler okunurken hata:', error.code, error.message);
     });
+// --- SANATÇI RESMİ YÜKLEME VE KIRPMA (JS tabanlı pan/zoom — her en-boy oranında çalışır) ---
+
+    // Container ve doğal resim boyutuna göre kırpma geometrisini hesaplar.
+    function ad_computeCropGeometry() {
+        const img = document.getElementById('ad_mainPhotoPreview');
+        const container = document.getElementById('ad_cropContainer');
+        if (!img.naturalWidth || !img.naturalHeight) return null;
+
+        const cw = container.clientWidth, ch = container.clientHeight;
+        const iw = img.naturalWidth, ih = img.naturalHeight;
+        const zoom = parseFloat(document.getElementById('ad_zoom').value) || 1;
+
+        const baseScale = Math.max(cw / iw, ch / ih); // "cover" ölçeği: en az bir eksen tam oturur
+        const totalScale = baseScale * zoom;
+
+        const scaledW = iw * totalScale, scaledH = ih * totalScale;
+        const maxOffsetX = Math.max(0, (scaledW - cw) / 2);
+        const maxOffsetY = Math.max(0, (scaledH - ch) / 2);
+
+        return { cw, ch, iw, ih, totalScale, scaledW, scaledH, maxOffsetX, maxOffsetY };
+    }
+
+    window.applyCrop = function() {
+        const zoomEl = document.getElementById('ad_zoom');
+        const xEl = document.getElementById('ad_posX');
+        const yEl = document.getElementById('ad_posY');
+        const zoom = parseFloat(zoomEl.value);
+        const x = parseFloat(xEl.value);
+        const y = parseFloat(yEl.value);
+
+        document.getElementById('val_zoom').innerText = zoom.toFixed(2) + 'x';
+        document.getElementById('val_x').innerText = Math.round(x) + '%';
+        document.getElementById('val_y').innerText = Math.round(y) + '%';
+        if (ad_currentData) ad_currentData.mainPhotoCrop = { zoom, x, y };
+
+        const img = document.getElementById('ad_mainPhotoPreview');
+        if (!img || img.classList.contains('hidden') || !img.src) return;
+
+        const geo = ad_computeCropGeometry();
+        if (!geo) return; // resim henüz yüklenmedi (naturalWidth hazır değil)
+
+        // x/y = 0 -> sol/yukarı ucu göster, 100 -> sağ/aşağı ucu göster
+        const offsetX = ((50 - x) / 50) * geo.maxOffsetX;
+        const offsetY = ((50 - y) / 50) * geo.maxOffsetY;
+
+        const left = (geo.cw - geo.scaledW) / 2 + offsetX;
+        const top = (geo.ch - geo.scaledH) / 2 + offsetY;
+
+        img.style.width = geo.scaledW + 'px';
+        img.style.height = geo.scaledH + 'px';
+        img.style.left = left + 'px';
+        img.style.top = top + 'px';
+        img.style.transform = 'none';
+    };
+
+    // Yeni bir resmi (URL veya data URL) kırpma alanına yükler; doğal boyut hazır olunca
+    // akıllı bir başlangıç zoom'u uygulayarak her iki eksende de sürüklemeye izin verir.
+    window.ad_loadImageIntoCropper = function(src, crop) {
+        const img = document.getElementById('ad_mainPhotoPreview');
+        const empty = document.getElementById('ad_mainPhotoEmpty');
+        const c = crop && typeof crop.zoom === 'number' ? crop : { zoom: 1.2, x: 50, y: 50 }; // hafif overzoom: dikey/yatay resimlerde de pan çalışsın
+        document.getElementById('ad_posX').value = c.x;
+        document.getElementById('ad_posY').value = c.y;
+        document.getElementById('ad_zoom').value = c.zoom;
+        ad_currentData.mainPhotoCrop = { zoom: c.zoom, x: c.x, y: c.y };
+
+        const onReady = () => {
+            img.classList.remove('hidden');
+            empty.classList.add('hidden');
+            window.applyCrop();
+        };
+        img.onload = onReady;
+        img.onerror = () => { console.warn('⚠️ Resim yüklenemedi:', src); };
+        img.src = src;
+        if (img.complete && img.naturalWidth) onReady();
+    };
+
+    document.getElementById('ad_localUpload').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const statusEl = document.getElementById('ad_localUploadStatus');
+        statusEl.className = 'text-[10px] font-bold text-sky-300';
+        statusEl.innerText = 'Yükleniyor...';
+        resimKucultVeBase64eCevir(file, 700, 0.85).then((dataUrl) => {
+            ad_currentData.mainPhotoUrl = dataUrl;
+            ad_currentData.mainPhotoLocked = true;
+            if (!ad_currentData.photos.find(p => p.url === dataUrl)) {
+                ad_currentData.photos.unshift({ url: dataUrl, source: 'Bilgisayardan' });
+            }
+            ad_renderPhotoGrid();
+            window.ad_loadImageIntoCropper(dataUrl);
+            statusEl.className = 'text-[10px] font-bold text-emerald-400';
+            statusEl.innerText = '✅ Yüklendi! Kaydetmeyi unutma.';
+        }).catch((err) => {
+            console.error('❌ Resim yüklenemedi:', err);
+            statusEl.className = 'text-[10px] font-bold text-red-400';
+            statusEl.innerText = '❌ Yükleme hatası.';
+        });
+        e.target.value = '';
+    });
+
+    document.getElementById('ad_addUrl').addEventListener('click', function() {
+        const urlInput = document.getElementById('ad_urlInput');
+        const url = urlInput.value.trim();
+        if (!url) return;
+        if (!/^https?:\/\//i.test(url)) {
+            alert('Geçerli bir URL gir (http:// veya https:// ile başlamalı).');
+            return;
+        }
+        ad_currentData.mainPhotoUrl = url;
+        ad_currentData.mainPhotoLocked = true;
+        if (!ad_currentData.photos.find(p => p.url === url)) {
+            ad_currentData.photos.unshift({ url, source: 'Manuel URL' });
+        }
+        ad_renderPhotoGrid();
+        window.ad_loadImageIntoCropper(url);
+        urlInput.value = '';
+    });
+
+    // Slider'lar
+    document.getElementById('ad_zoom').addEventListener('input', window.applyCrop);
+    document.getElementById('ad_posX').addEventListener('input', window.applyCrop);
+    document.getElementById('ad_posY').addEventListener('input', window.applyCrop);
+
+    // Fare ile sürükleyerek konumlandırma (pan)
+    (function setupAdCropperMouse() {
+        const container = document.getElementById('ad_cropContainer');
+        const zoomEl = document.getElementById('ad_zoom');
+        const xEl = document.getElementById('ad_posX');
+        const yEl = document.getElementById('ad_posY');
+        let dragging = false;
+        let startClientX = 0, startClientY = 0;
+        let startOffsetX = 0, startOffsetY = 0;
+        let dragGeo = null;
+
+        function pointerDown(clientX, clientY) {
+            const img = document.getElementById('ad_mainPhotoPreview');
+            if (img.classList.contains('hidden') || !img.src) return;
+            dragGeo = ad_computeCropGeometry();
+            if (!dragGeo) return;
+            dragging = true;
+            container.classList.add('ad-dragging');
+            startClientX = clientX; startClientY = clientY;
+            const x = parseFloat(xEl.value), y = parseFloat(yEl.value);
+            startOffsetX = ((50 - x) / 50) * dragGeo.maxOffsetX;
+            startOffsetY = ((50 - y) / 50) * dragGeo.maxOffsetY;
+        }
+
+        function pointerMove(clientX, clientY) {
+            if (!dragging || !dragGeo) return;
+            const dx = clientX - startClientX, dy = clientY - startClientY;
+
+            if (dragGeo.maxOffsetX > 0) {
+                const newOffsetX = Math.max(-dragGeo.maxOffsetX, Math.min(dragGeo.maxOffsetX, startOffsetX + dx));
+                xEl.value = String(50 - (newOffsetX / dragGeo.maxOffsetX) * 50);
+            }
+            if (dragGeo.maxOffsetY > 0) {
+                const newOffsetY = Math.max(-dragGeo.maxOffsetY, Math.min(dragGeo.maxOffsetY, startOffsetY + dy));
+                yEl.value = String(50 - (newOffsetY / dragGeo.maxOffsetY) * 50);
+            }
+            window.applyCrop();
+        }
+
+        function pointerUp() {
+            dragging = false;
+            dragGeo = null;
+            container.classList.remove('ad-dragging');
+        }
+
+        container.addEventListener('mousedown', (e) => { e.preventDefault(); pointerDown(e.clientX, e.clientY); });
+        window.addEventListener('mousemove', (e) => pointerMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', pointerUp);
+
+        container.addEventListener('touchstart', (e) => {
+            if (e.touches.length !== 1) return;
+            pointerDown(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+        container.addEventListener('touchmove', (e) => {
+            if (e.touches.length !== 1) return;
+            pointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: true });
+        container.addEventListener('touchend', pointerUp);
+
+        // Fare tekerleği ile zoom
+        container.addEventListener('wheel', (e) => {
+            const img = document.getElementById('ad_mainPhotoPreview');
+            if (img.classList.contains('hidden') || !img.src) return;
+            e.preventDefault();
+            const min = parseFloat(zoomEl.min), max = parseFloat(zoomEl.max);
+            const step = 0.1;
+            let val = parseFloat(zoomEl.value) + (e.deltaY < 0 ? step : -step);
+            val = Math.max(min, Math.min(max, val));
+            zoomEl.value = String(val);
+            window.applyCrop();
+        }, { passive: false });
+    })();
 </script>
 </body>
 </html>

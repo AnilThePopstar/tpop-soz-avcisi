@@ -725,7 +725,8 @@
                 <i class="fas fa-info-circle mr-2 text-xl"></i> <span id="hintText"></span>
             </div>
 
-            <div class="min-h-[160px] flex flex-col items-center justify-center mb-8 text-center bg-black/50 p-8 rounded-2xl border border-white/10 relative shadow-inner backdrop-blur-md">
+            <div class="min-h-[160px] flex flex-col md:flex-row items-center justify-center gap-5 mb-8 text-center bg-black/50 p-8 rounded-2xl border border-white/10 relative shadow-inner backdrop-blur-md">
+                <img id="questionCoverImg" src="" alt="Şarkı Kapağı" class="hidden w-20 h-20 md:w-28 md:h-28 rounded-xl object-cover border-2 border-white/20 shadow-lg flex-shrink-0 bg-black/40">
                 <div id="lyricText" class="text-xl md:text-2xl lg:text-3xl font-bold italic leading-relaxed text-transparent bg-clip-text bg-gradient-to-br from-white to-gray-300 drop-shadow-lg transition-all">
                     "Yükleniyor..."
                 </div>
@@ -1285,6 +1286,14 @@
         onValue(ref(db, 'blacklist'), (snapshot) => {
             window.blacklistCache = snapshot.val() || {};
         });
+
+        // Admin panelinden yönetilen sanatçı detayları (fotoğraf, biyografi, etiketler, benzer sanatçılar).
+        // "Kim Söylüyor" modunda şık avatarları ve genel sanatçı zenginleştirmesi için kullanılır.
+        window.artistsCache = {};
+        onValue(ref(db, 'artists'), (snapshot) => {
+            window.artistsCache = snapshot.val() || {};
+        });
+        window.sanitizeKey = sanitizeKey;
 
         // Admin tarafından oyuncuya gönderilen ödül/uyarı mesajlarını okumak için.
         window.adminInboxOku = async (username) => {
@@ -6752,6 +6761,46 @@ const panel = document.getElementById('mainPanel');
         document.getElementById('resumeBtn').onclick = () => { document.getElementById('pauseModal').classList.add('hidden'); if(currentMode === 'timeAttack') startTimer(true); else resetIdleTimer(); };
         document.getElementById('quitGameBtn').onclick = () => { document.getElementById('pauseModal').classList.add('hidden'); endGame(); };
 
+        // Firebase key olarak kullanılamayan karakterleri temizler (admin panelindeki sanitizeKey ile birebir aynı mantık).
+        function artKeyClient(str) {
+            return (window.sanitizeKey ? window.sanitizeKey(str) : String(str).replace(/[.#$\[\]\/]/g, '_').trim());
+        }
+
+        // Bir sanatçının admin panelinde kilitlenmiş "Ana Profil Resmi"ni döndürür (yoksa null).
+        function getArtistPhoto(artistName) {
+            const entry = window.artistsCache && window.artistsCache[artKeyClient(artistName)];
+            return (entry && entry.mainPhotoUrl) ? entry.mainPhotoUrl : null;
+        }
+
+        // Admin panelinin "Sanatçı Detaylarını Gör" ekranından girilen joker ipucu varsa, koddaki
+        // sabit ipucunun yerine onu kullanır (admin panelinde artık canlı olarak düzenlenebiliyor).
+        function getArtistHintOverride(artistName) {
+            const entry = window.artistsCache && window.artistsCache[artKeyClient(artistName)];
+            return (entry && entry.hint) ? entry.hint : null;
+        }
+
+        // Bir şarkının kapak resmini döndürür: admin panelinden yüklenen özel kapak > Spotify > iTunes.
+        function getSongCover(song) {
+            if (!song) return null;
+            return song.customCoverImage || song.spotifyAlbumArt || song.itunesAlbumArt || null;
+        }
+
+        // "Sözün Devamı", "Hangi Yıl" ve "Tersine" modlarında soru kutusunun yanına şarkı kapağını
+        // gösterir; kapak yoksa veya mod uygun değilse görseli tamamen gizler (estetik bozulmasın).
+        function updateQuestionCoverImage(song) {
+            const img = document.getElementById('questionCoverImg');
+            if (!img) return;
+            const showModes = ['nextLyric', 'guessYear', 'reverse'];
+            const url = showModes.includes(currentMode) ? getSongCover(song) : null;
+            if (url) {
+                img.src = url;
+                img.classList.remove('hidden');
+            } else {
+                img.src = '';
+                img.classList.add('hidden');
+            }
+        }
+
         function loadQuestion() {
             stopPreviewAudio();
             isProcessing = false;
@@ -6830,7 +6879,8 @@ const panel = document.getElementById('mainPanel');
                     if (vetoEdilen.length > 0) console.log(`🔗 Cover ID "${correctData.coverId}" ailesi: "${correctData.title}" soruldu, bu oturumda vetolananlar:`, vetoEdilen);
                 }
             }
-            window.currentCorrectSongObj = correctData; 
+            window.currentCorrectSongObj = correctData;
+            updateQuestionCoverImage(correctData);
 
             // FİLTRE 2: Çeldirici (Yanlış Şık) Havuzunu Dil ve CoverId'ye göre ayarla
             let distractorPool = pool.filter(s => s.title !== correctData.title);
@@ -6858,8 +6908,12 @@ const panel = document.getElementById('mainPanel');
 
                 options.forEach(opt => {
                     const btn = document.createElement('button');
-                    btn.className = 'option-btn w-full text-center p-4 rounded-xl font-bold text-lg shadow-md';
-                    btn.innerHTML = `<span>${opt}</span> <span class="aud-pct text-amber-400 text-sm hidden drop-shadow-md"></span>`;
+                    btn.className = 'option-btn w-full text-center p-4 rounded-xl font-bold text-lg shadow-md flex items-center justify-center gap-3';
+                    const artistPhoto = getArtistPhoto(opt);
+                    const avatarHtml = artistPhoto
+                        ? `<img src="${artistPhoto}" alt="" class="w-9 h-9 rounded-full object-cover border-2 border-white/30 shadow-sm flex-shrink-0">`
+                        : '';
+                    btn.innerHTML = `${avatarHtml}<span>${opt}</span> <span class="aud-pct text-amber-400 text-sm hidden drop-shadow-md"></span>`;
                     btn.dataset.isCorrect = (opt === currentCorrectAnswer) ? "true" : "false";
                     btn.onclick = () => checkAnswer(btn, opt);
                     grid.appendChild(btn);
@@ -7131,7 +7185,7 @@ function trackModeJokerUsage() {
             
             if(currentMode === 'artist') { 
                 let currentArtist = window.currentCorrectSongObj.artist;
-                document.getElementById('hintText').innerText = artistHints[currentArtist] || "Bu sanatçının tarzını veya ismini düşün..."; 
+                document.getElementById('hintText').innerText = getArtistHintOverride(currentArtist) || artistHints[currentArtist] || "Bu sanatçının tarzını veya ismini düşün..."; 
             } 
             else if (currentMode === 'fillBlank') { document.getElementById('hintText').innerText = "Cümlenin akışına odaklan, ahengi bozan kelimeyi ele..."; } 
             else if (currentMode === 'reverse') { document.getElementById('hintText').innerText = window.currentCorrectSongObj.reverseHint || "Bu şarkının giriş sözleri için ipucu bulunamadı..."; }
